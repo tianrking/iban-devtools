@@ -18,13 +18,14 @@
     "deploy:cloudflare": "npm run build:cloudflare && wrangler deploy",
     "deploy:vercel": "vercel --prod",
     "cli": "node --experimental-strip-types ./bin/iban-devtools.mjs",
-    "geo:americas": "node ./scripts/build-americas-geo-data.mjs",
+    "geo:world": "node ./scripts/build-world-geo-data.mjs",
     "registry:check": "node ./scripts/check-iban-registry.mjs",
     "test": "npm run build && node --experimental-strip-types --test tests/*.test.mjs",
     "check": "npm run lint && npm run test && npm run build:vercel",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next"
   },
   "dependencies": {
+    "geist": "1.7.0",
     "next": "16.2.12",
     "react": "19.2.8",
     "react-dom": "19.2.8"

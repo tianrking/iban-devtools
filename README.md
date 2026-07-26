@@ -10,16 +10,18 @@
 
 ## 功能
 
-- 内置 89 个 IBAN 国家/地区结构，覆盖 SEPA 与全球 IBAN 注册格式
-- 身份目录扩展为 117 个市场；覆盖美洲 35 个主权国家
-- 美洲按国家懒加载 643 个州/省级地区与 42,318 个城市，选择地区后可指定该地区的全部目录城市
-- 美国生成带校验位的 ABA routing + account，加拿大生成 9 位电子 routing + account，墨西哥生成带校验位的 18 位 CLABE
-- 美国、加拿大、墨西哥等非 IBAN 国家不会生成或暗示虚假 IBAN
+- 提供 250 个可选市场：249 个 ISO 3166-1 国家/地区条目，以及使用用户分配代码 `XK` 的科索沃
+- 国家/地区显示名由标准区域名称生成；币种由 SIX 官方 ISO 4217 `2026-01-01` 快照校正，支持海地、巴拿马等多币种市场选择
+- 全球地理快照包含 5,308 个州/省级地区与 152,970 条城市记录；223 个市场含城市数据，27 个市场暂无城市记录
+- 全球目录按国家拆分并按需加载，只在选择国家后下载对应地理文件，不会把完整城市库打进首屏 JavaScript
+- 内置 89 个 SWIFT IBAN Registry 国家/地区结构，覆盖 SEPA 与全球正式注册的 IBAN 格式
+- 美国生成带校验位的 ABA routing + account，加拿大生成 9 位电子 routing + account，墨西哥生成带校验位的 18 位 CLABE，阿根廷生成带双校验位的 22 位 CBU
+- 非 IBAN 市场使用明确分级的本地支付测试标识；澳大利亚 BSB、印度 IFSC、中国 CNAPS、日本 Zengin、香港清算代码、新西兰、新加坡与南非的路由部分使用独立国家标签，账户长度是项目 fixture，并明确标为 `format-only`
 - 使用 ISO 13616 / MOD-97 算法生成合法校验码
 - 支持合法、错误校验码、错误长度、非法字符、错误 BBAN、小写和连字符测试用例
 - 单条生成、自定义 BBAN、格式化与 Raw 输出，并支持分层错误诊断
-- 国家、州/地区、城市三级联动，确保所选城市属于所选地区；美洲地理目录按国家加载，不拖慢首页
-- 国家搜索、SEPA/全球筛选、币种与注册表结构提示
+- 国家、州/地区、城市三级联动，确保目录中的城市属于所选地区；无城市记录的市场会明确使用合成测试地区
+- 国家搜索、SEPA 与全球区域筛选、币种与注册表结构提示
 - 支持随机、指定与区间年龄策略，以及性别、姓名、街道和邮编覆盖
 - 支持固定随机种子，可稳定复现同一套回归测试数据
 - 完整身份包含证件、护照、地址、保险、税务、IBAN 或本地支付标识、BIC、沙盒银行卡、企业、薪资和 KYC 字段
@@ -60,7 +62,9 @@ npm run check
 
 # CLI
 npm run cli -- generate --country DE --count 10 --seed qa-01 --format json
+npm run cli -- generate --country JP --region Tokyo --city Chiyoda-ku --seed jp-qa --format json
 npm run cli -- generate --country US --count 10 --seed ach-qa --format json
+npm run cli -- generate --country PA --currency USD --count 10 --seed pa-usd --format json
 npm run cli -- validate DE89370400440532013000
 npm run cli -- countries
 ```
@@ -72,7 +76,7 @@ GitHub Actions 会在每次推送与 Pull Request 时同时验证两个目标平
 三个 Route Handler 可直接运行在 Vercel Edge 或 Cloudflare Workers：
 
 ```bash
-# 生成一条或一个批次（最大 1000）
+# 生成一条或一个批次（最大 1000，默认从所选市场的目录中选择城市）
 curl 'http://localhost:3000/api/generate?country=FR&count=10&seed=qa-01&scenario=sepa'
 curl 'http://localhost:3000/api/generate?country=US&count=10&seed=ach-qa&scenario=payments'
 
@@ -116,7 +120,8 @@ app/
 └── layout.tsx       # 页面元数据、PWA 与社交分享
 lib/
 ├── iban-core.ts        # 89 国注册表、MOD-97、生成与分层校验
-├── country-catalog.ts  # IBAN 与美洲身份/支付国家目录
+├── country-catalog.ts  # 250 个市场的国家、IBAN 与本地支付目录
+├── world-country-data.generated.ts # 全球地理索引生成产物
 ├── national-banking.ts # ABA、加拿大 routing、CLABE 与本地测试标识
 ├── exporters.ts        # 12 种完整批量开发者导出格式
 ├── global-test-data.ts # 完整测试身份、KYC 与支付数据
@@ -124,12 +129,12 @@ lib/
 bin/
 └── iban-devtools.mjs   # Node.js CLI
 public/
-├── data/americas/      # 按国家拆分、浏览器按需加载的地理目录
+├── data/world/         # 250 个按国家拆分、浏览器按需加载的全球地理文件
 ├── manifest.webmanifest
 ├── sw.js
 └── og.png
 scripts/
-├── build-americas-geo-data.mjs
+├── build-world-geo-data.mjs
 └── check-iban-registry.mjs
 worker/
 └── index.ts         # Cloudflare Worker 入口
@@ -148,12 +153,35 @@ IBAN 校验基于 ISO 13616：
 
 生成结果只保证格式和校验算法合法，不代表真实银行账户。
 
-美洲城市目录来自 Countries States Cities Database `v3.2-export.6`，
-以 ODbL 1.0 许可再分发。它是社区维护的广覆盖参考目录，不是各国政府
-实时行政名录，不能保证永久完整或零错误。详细来源、许可与各字段的
-准确性边界见 [DATA_SOURCES.md](DATA_SOURCES.md)。
+全球国家、地区与城市目录来自 Countries States Cities Database
+`v3.2-export.6`，以 ODbL 1.0 许可再分发。该固定社区快照包含 249 个
+ISO 3166-1 条目和 `XK` 用户分配代码，共 250 个可选市场；其中 223 个
+市场含城市记录，27 个不含城市记录。它不是各国政府实时行政名录，也
+不是全球所有城市的官方穷举，不能保证永久完整或零错误。
+
+目录中的州/省、地区和城市名称来自上述快照；生成的街道、门牌号、
+邮政编码、姓名、电话、税号、保险号、证件和雇佣信息仍是合成测试数据。
+因此，出现真实城市名不表示整条地址真实存在，也不表示邮编与该城市
+存在官方对应关系。详细来源、许可与字段级准确性边界见
+[DATA_SOURCES.md](DATA_SOURCES.md)。
+
+支付标识按准确性分层展示：89 个 IBAN 格式与美国 ABA、墨西哥 CLABE、
+阿根廷 CBU 共 92 个市场提供校验算法；澳大利亚、加拿大、中国、香港、
+印度、日本、新西兰、新加坡和南非共 9 个市场提供带本国路由标签的
+`format-only` 测试值，但账户长度仍是银行特定或项目 fixture；其余 149
+个市场使用明确标注的通用本地账户测试值。所有结果都不会查询真实银行
+或账户目录。
+
+币种映射来自 SIX（ISO 4217 Maintenance Agency）发布的 List One
+`2026-01-01` 快照；生成脚本同时校验地理压缩包与币种 XML 的 SHA-256。
 
 德国 Steuer-ID 使用 ISO/IEC 7064 MOD 11,10 校验算法，并采用经典的十位主体数字重复规则。其他国家的税务与保险字段明确标记为格式测试值。沙盒银行卡为公开测试卡，不能用于真实扣款。
+
+如需从固定源重新生成全球地理目录和轻量国家元数据：
+
+```bash
+npm run geo:world
+```
 
 ## 免责声明
 

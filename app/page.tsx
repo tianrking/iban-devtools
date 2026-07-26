@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   createRandomInt,
   DEFAULT_SYNTHETIC_IDENTITY,
@@ -16,6 +22,7 @@ import {
   countryRegex,
   formatIban,
   IBAN_COUNTRIES,
+  isSupportedCaseMode,
   type IbanCaseMode,
   type IbanCountrySpec,
   validateIban,
@@ -23,9 +30,15 @@ import {
 import {
   COUNTRY_CATALOG,
   COUNTRY_CATALOG_MAP,
+  WORLD_GEO_COUNTS,
 } from "@/lib/country-catalog";
 import { generateNationalBanking } from "@/lib/national-banking";
-import type { CountryGeoData } from "@/lib/geo-data";
+import {
+  findGeoRegion,
+  selectGeoCityOrFixture,
+  type CountryGeoData,
+  uniqueRegionCities,
+} from "@/lib/geo-data";
 import {
   EXPORT_FORMATS,
   exportFileMetadata,
@@ -40,6 +53,18 @@ import type {
 const COUNTRIES = COUNTRY_CATALOG;
 const COUNTRY_MAP = COUNTRY_CATALOG_MAP;
 const DEFAULT_IBAN = "DE89370400440532013000";
+const COUNTRY_SCOPES = [
+  ["all", "全部地区"],
+  ["sepa", "SEPA"],
+  ["Europe", "欧洲"],
+  ["Asia", "亚洲"],
+  ["Africa", "非洲"],
+  ["Americas", "美洲"],
+  ["Oceania", "大洋洲"],
+  ["Polar", "极地"],
+  ["Other", "其他区域"],
+] as const;
+type CountryScope = (typeof COUNTRY_SCOPES)[number][0];
 const GENDER_OPTIONS = [
   ["random", "随机"],
   ["female", "女性"],
@@ -103,6 +128,7 @@ export default function Home() {
   const [tab, setTab] = useState<"generate" | "validate">("generate");
   const [generateMode, setGenerateMode] = useState<"single" | "batch">("single");
   const [countryCode, setCountryCode] = useState("DE");
+  const [currencyChoice, setCurrencyChoice] = useState("EUR");
   const [regionChoice, setRegionChoice] = useState("random");
   const [cityChoice, setCityChoice] = useState("random");
   const [genderChoice, setGenderChoice] = useState<ProfileGender | "random">("random");
@@ -126,7 +152,8 @@ export default function Home() {
   const [batchPage, setBatchPage] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [countryQuery, setCountryQuery] = useState("");
-  const [countryScope, setCountryScope] = useState<"all" | "sepa" | "global">("all");
+  const [countryScope, setCountryScope] = useState<CountryScope>("all");
+  const [cityQuery, setCityQuery] = useState("");
   const [exportFormat, setExportFormat] = useState<ExportFormat>("json");
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [commandOpen, setCommandOpen] = useState(false);
@@ -138,8 +165,66 @@ export default function Home() {
   const [geoData, setGeoData] = useState<CountryGeoData | null>(null);
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState("");
+  const batchWorkerRef = useRef<Worker | null>(null);
+  const batchConfigurationRef = useRef("");
+  const commandDialogRef = useRef<HTMLDivElement | null>(null);
+  const commandTriggerRef = useRef<HTMLButtonElement | null>(null);
 
+  const batchConfigurationSignature = JSON.stringify([
+    generateMode,
+    countryCode,
+    currencyChoice,
+    regionChoice,
+    cityChoice,
+    genderChoice,
+    ageMode,
+    exactAge,
+    minimumAge,
+    maximumAge,
+    batchCount,
+    scenario,
+    caseMode,
+    bankCode,
+    account,
+    seed,
+    firstNameOverride,
+    lastNameOverride,
+    streetOverride,
+    postalCodeOverride,
+  ]);
   const country = COUNTRY_MAP.get(countryCode) ?? COUNTRIES[0];
+  const caseModeOptions = country.ibanSpec
+    ? CASE_MODES
+    : CASE_MODES
+        .filter(
+          (item) =>
+            item.value !== "lowercase" &&
+            item.value !== "hyphenated",
+        )
+        .map((item) => {
+          if (item.value === "valid") {
+            return {
+              ...item,
+              label:
+                country.payment.validation === "checksum"
+                  ? "校验通过"
+                  : "格式测试值",
+            };
+          }
+          if (item.value === "bad-checksum") {
+            return {
+              ...item,
+              label:
+                country.payment.validation === "checksum"
+                  ? "错误校验码"
+                  : "格式破坏（非法字符）",
+            };
+          }
+          if (item.value === "bad-bban") {
+            return { ...item, label: "错误路由 / 账户结构" };
+          }
+          return item;
+        });
   const filteredCountries = useMemo(() => {
     const query = countryQuery.trim().toLowerCase();
     return COUNTRIES.filter((item) => {
@@ -147,29 +232,56 @@ export default function Home() {
         countryScope === "all" ||
         (countryScope === "sepa"
           ? Boolean(item.ibanSpec?.sepa)
-          : item.continent === "Americas");
+          : item.region === countryScope);
       return (
         inScope &&
         (!query ||
           item.code.toLowerCase().includes(query) ||
           item.name.toLowerCase().includes(query) ||
-          item.currency.toLowerCase().includes(query))
+          item.englishName.toLowerCase().includes(query) ||
+          item.nativeName.toLowerCase().includes(query) ||
+          item.currencies.some((currency) =>
+            currency.toLowerCase().includes(query),
+          ))
       );
     });
   }, [countryQuery, countryScope]);
   const identityCountry = getIdentityCountry(countryCode);
   const regionOptions = useMemo(
-    () =>
-      geoData?.country.code === countryCode
-        ? geoData.regions.map((region) => region.name)
-        : [...new Set(identityCountry.cities.map((city) => city.region))],
+    () => {
+      if (geoData?.country.code === countryCode) {
+        const nameCounts = new Map<string, number>();
+        for (const region of geoData.regions) {
+          nameCounts.set(
+            region.name,
+            (nameCounts.get(region.name) ?? 0) + 1,
+          );
+        }
+        return geoData.regions.map((region) => ({
+          value: region.code,
+          label:
+            (nameCounts.get(region.name) ?? 0) > 1
+              ? `${region.name} · ${region.code}`
+              : region.name,
+        }));
+      }
+      return [...new Set(identityCountry.cities.map((city) => city.region))].map(
+        (region) => ({ value: region, label: region }),
+      );
+    },
     [countryCode, geoData, identityCountry],
   );
+  const regionChoiceLabel =
+    regionChoice === "random"
+      ? "全地区"
+      : regionOptions.find((region) => region.value === regionChoice)?.label ??
+        regionChoice;
   const availableCities = useMemo(
     () => {
       if (geoData?.country.code === countryCode) {
         if (regionChoice === "random") return [];
-        return geoData.regions.find((region) => region.name === regionChoice)?.cities ?? [];
+        const region = findGeoRegion(geoData, regionChoice);
+        return region ? uniqueRegionCities(region) : [];
       }
       return regionChoice === "random"
         ? identityCountry.cities
@@ -177,6 +289,29 @@ export default function Home() {
     },
     [countryCode, geoData, identityCountry, regionChoice],
   );
+  const visibleCityOptions = useMemo(() => {
+    const query = cityQuery.trim().toLocaleLowerCase();
+    const matches = query
+      ? availableCities.filter((city) =>
+          city.name.toLocaleLowerCase().includes(query),
+        )
+      : availableCities;
+    const limited = matches.slice(0, 100);
+    if (
+      cityChoice !== "random" &&
+      !limited.some((city) => city.name === cityChoice)
+    ) {
+      const selected = availableCities.find((city) => city.name === cityChoice);
+      if (selected) return [selected, ...limited];
+    }
+    return limited;
+  }, [availableCities, cityChoice, cityQuery]);
+  const usesSyntheticLocality =
+    geoData?.country.code === countryCode &&
+    !geoLoading &&
+    (geoData.counts.cities === 0 ||
+      (regionChoice !== "random" &&
+        (findGeoRegion(geoData, regionChoice)?.cities.length ?? 0) === 0));
   const resolvedAgeChoice: AgeChoice =
     ageMode === "random"
       ? "random"
@@ -198,7 +333,9 @@ export default function Home() {
       id: "payment-regression",
       icon: "↔",
       title: country.ibanSpec?.sepa ? "SEPA 支付回归" : "本地支付回归",
-      description: `${country.currency} · 10 条合法账户`,
+      description: `${
+        country.ibanSpec?.sepa ? "EUR" : currencyChoice
+      } · 10 条合法账户`,
       scenario: country.ibanSpec?.sepa ? "sepa" : "payments",
       caseMode: "valid",
       count: 10,
@@ -207,9 +344,14 @@ export default function Home() {
       id: "payment-failure",
       icon: "×",
       title: "支付失败用例",
-      description: `${country.code} · 错误校验码`,
+      description: `${country.code} · ${
+        country.payment.validation === "checksum" ? "错误校验码" : "格式负例"
+      }`,
       scenario: "payments",
-      caseMode: "bad-checksum",
+      caseMode:
+        country.payment.validation === "checksum"
+          ? "bad-checksum"
+          : "bad-bban",
       count: 1,
     },
     {
@@ -243,6 +385,21 @@ export default function Home() {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
 
+  useEffect(
+    () => () => {
+      batchWorkerRef.current?.terminate();
+    },
+    [],
+  );
+
+  useEffect(() => {
+    batchConfigurationRef.current = batchConfigurationSignature;
+    if (!batchWorkerRef.current) return;
+    batchWorkerRef.current.terminate();
+    batchWorkerRef.current = null;
+    setIsGenerating(false);
+  }, [batchConfigurationSignature]);
+
   useEffect(() => {
     if (!country.geoDataPath) return;
     const controller = new AbortController();
@@ -269,55 +426,53 @@ export default function Home() {
     return () => controller.abort();
   }, [country.geoDataPath]);
 
+  const syncSingleProfileToGeo = useEffectEvent(
+    (data: CountryGeoData) => {
+      if (generateMode !== "single") return;
+      const selectedCity = selectGeoCityOrFixture(
+        data,
+        regionChoice,
+        cityChoice,
+        createRandomInt(seed ? `${seed}:city:0` : undefined),
+      );
+      const bankingIdentity = generateNationalBanking(
+        country,
+        createRandomInt(seed ? `${seed}:iban:0` : undefined),
+        { bankCode, account, caseMode },
+      );
+      setProfiles((current) => {
+        if (
+          current.length !== 1 ||
+          current[0].country.code !== countryCode
+        ) {
+          return current;
+        }
+        return [
+          generateSyntheticIdentity({
+            countryCode,
+            iban: bankingIdentity.iban ?? "",
+            bankingIdentity,
+            cityName: selectedCity ? "random" : cityChoice,
+            cityOverride: selectedCity,
+            genderChoice,
+            ageChoice: resolvedAgeChoice,
+            firstNameOverride,
+            lastNameOverride,
+            streetOverride,
+            postalCodeOverride,
+            currencyOverride: currencyChoice,
+            seed,
+            scenario,
+          }),
+        ];
+      });
+    },
+  );
+
   useEffect(() => {
     if (geoData?.country.code !== countryCode) return;
-    const genericCityPrefix = `${countryCode} `;
-    const selectedRegion = geoData.regions.find((region) => region.cities.length > 0);
-    const selectedCity = selectedRegion?.cities[0];
-    if (!selectedRegion || !selectedCity) return;
-
     const timer = window.setTimeout(() => {
-      setProfiles((current) =>
-        current.map((profile) => {
-          if (
-            profile.country.code !== countryCode ||
-            !profile.address.city.startsWith(genericCityPrefix)
-          ) {
-            return profile;
-          }
-          const formatted = `${profile.address.street} ${profile.address.houseNumber}, ${profile.address.postalCode} ${selectedCity.name}, ${profile.country.name}`;
-          return {
-            ...profile,
-            personal: {
-              ...profile.personal,
-              birthPlace: selectedCity.name,
-              timezone: selectedCity.timezone || selectedRegion.timezone,
-            },
-            address: {
-              ...profile.address,
-              city: selectedCity.name,
-              region: selectedRegion.name,
-              formatted,
-            },
-            employment: {
-              ...profile.employment,
-              employer: `${selectedCity.name} Demo Labs`,
-            },
-            business: {
-              ...profile.business,
-              companyName: `${selectedCity.name} Demo Labs`,
-            },
-            payment: {
-              ...profile.payment,
-              structuredAddress: {
-                ...profile.payment.structuredAddress,
-                townName: selectedCity.name,
-                countrySubdivision: selectedRegion.name,
-              },
-            },
-          };
-        }),
-      );
+      syncSingleProfileToGeo(geoData);
     }, 0);
     return () => window.clearTimeout(timer);
   }, [countryCode, geoData]);
@@ -328,29 +483,41 @@ export default function Home() {
     const sharedScenario = params.get("scenario") as IdentityScenario | null;
     const sharedCase = params.get("case") as IbanCaseMode | null;
     const sharedSeed = params.get("seed") ?? "";
+    const sharedCurrency = params.get("currency") ?? "";
+    const sharedSpec = sharedCountry
+      ? (COUNTRY_MAP.get(sharedCountry) ?? COUNTRY_MAP.get("DE")!)
+      : COUNTRY_MAP.get("DE")!;
+    const resolvedSharedCase = isSupportedCaseMode(
+      sharedCase,
+      Boolean(sharedSpec.ibanSpec),
+    )
+      ? sharedCase
+      : "valid";
     const timer = window.setTimeout(() => {
       if (sharedCountry && COUNTRY_MAP.has(sharedCountry)) {
-        const sharedSpec = COUNTRY_MAP.get(sharedCountry)!;
-        const resolvedSharedCase =
-          sharedCase && CASE_MODES.some((item) => item.value === sharedCase)
-            ? sharedCase
-            : "valid";
         const resolvedSharedScenario =
           sharedScenario && SCENARIOS.some((item) => item.value === sharedScenario)
             ? sharedScenario
             : "complete";
+        const resolvedSharedCurrency = sharedSpec.currencies.includes(
+          sharedCurrency,
+        )
+          ? sharedCurrency
+          : sharedSpec.currency;
         const bankingIdentity = generateNationalBanking(
           sharedSpec,
           createRandomInt(sharedSeed ? `${sharedSeed}:iban:0` : undefined),
           { caseMode: resolvedSharedCase },
         );
         setCountryCode(sharedCountry);
+        setCurrencyChoice(resolvedSharedCurrency);
         setProfiles([
           generateSyntheticIdentity({
             countryCode: sharedCountry,
             iban: bankingIdentity.iban ?? "",
             bankingIdentity,
             scenario: resolvedSharedScenario,
+            currencyOverride: resolvedSharedCurrency,
             seed: sharedSeed,
           }),
         ]);
@@ -358,13 +525,64 @@ export default function Home() {
       if (sharedScenario && SCENARIOS.some((item) => item.value === sharedScenario)) {
         setScenario(sharedScenario);
       }
-      if (sharedCase && CASE_MODES.some((item) => item.value === sharedCase)) {
-        setCaseMode(sharedCase);
+      if (
+        sharedCase &&
+        isSupportedCaseMode(sharedCase, Boolean(sharedSpec.ibanSpec))
+      ) {
+        setCaseMode(resolvedSharedCase);
       }
       if (sharedSeed) setSeed(sharedSeed);
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (!commandOpen || !commandDialogRef.current) return;
+    const dialog = commandDialogRef.current;
+    const commandTrigger = commandTriggerRef.current;
+    const previousFocus = document.activeElement;
+    const background = Array.from(
+      document.querySelectorAll<HTMLElement>(
+        "main > :not(.command-backdrop)",
+      ),
+    );
+    background.forEach((element) => {
+      element.inert = true;
+    });
+
+    const focusable = Array.from(
+      dialog.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+    focusable[0]?.focus();
+
+    const trapFocus = (event: KeyboardEvent) => {
+      if (event.key !== "Tab" || focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    dialog.addEventListener("keydown", trapFocus);
+
+    return () => {
+      dialog.removeEventListener("keydown", trapFocus);
+      background.forEach((element) => {
+        element.inert = false;
+      });
+      if (previousFocus instanceof HTMLElement) {
+        previousFocus.focus();
+      } else {
+        commandTrigger?.focus();
+      }
+    };
+  }, [commandOpen]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -394,22 +612,12 @@ export default function Home() {
   const resolveGeoCity = (index = 0) => {
     if (geoData?.country.code !== countryCode) return undefined;
     const randomInt = createRandomInt(seed ? `${seed}:city:${index}` : undefined);
-    const candidateRegions =
-      regionChoice === "random"
-        ? geoData.regions.filter((region) => region.cities.length > 0)
-        : geoData.regions.filter((region) => region.name === regionChoice);
-    const region = candidateRegions[randomInt(candidateRegions.length)];
-    if (!region) return undefined;
-    const city =
-      cityChoice === "random"
-        ? region.cities[randomInt(region.cities.length)]
-        : region.cities.find((item) => item.name === cityChoice);
-    if (!city) return undefined;
-    return {
-      name: city.name,
-      region: region.name,
-      timezone: city.timezone || region.timezone,
-    };
+    return selectGeoCityOrFixture(
+      geoData,
+      regionChoice,
+      cityChoice,
+      randomInt,
+    );
   };
 
   const createProfile = (
@@ -449,6 +657,7 @@ export default function Home() {
       lastNameOverride,
       streetOverride,
       postalCodeOverride,
+      currencyOverride: currencyChoice,
       seed,
       index,
       scenario: resolvedScenario,
@@ -459,7 +668,14 @@ export default function Home() {
     setProfiles([createProfile()]);
     localStorage.setItem(
       "iban-devtools:last-config",
-      JSON.stringify({ countryCode, scenario, caseMode, batchCount: 1, seed }),
+      JSON.stringify({
+        countryCode,
+        currencyChoice,
+        scenario,
+        caseMode,
+        batchCount: 1,
+        seed,
+      }),
     );
     showToast("完整测试身份已生成");
   };
@@ -469,11 +685,14 @@ export default function Home() {
     const nextBanking = generateNationalBanking(
       nextCountry,
       createRandomInt(seed ? `${seed}:iban:0` : undefined),
-      { caseMode },
+      { caseMode: "valid" },
     );
     setCountryCode(code);
+    setCaseMode("valid");
+    setCurrencyChoice(nextCountry.currency);
     setRegionChoice("random");
     setCityChoice("random");
+    setCityQuery("");
     setBankCode("");
     setAccount("");
     setStreetOverride("");
@@ -487,6 +706,7 @@ export default function Home() {
         ageChoice: resolvedAgeChoice,
         firstNameOverride,
         lastNameOverride,
+        currencyOverride: nextCountry.currency,
         seed,
         scenario,
       }),
@@ -500,7 +720,14 @@ export default function Home() {
       setIsGenerating(false);
       localStorage.setItem(
         "iban-devtools:last-config",
-        JSON.stringify({ countryCode, scenario, caseMode, batchCount, seed }),
+        JSON.stringify({
+          countryCode,
+          currencyChoice,
+          scenario,
+          caseMode,
+          batchCount,
+          seed,
+        }),
       );
       showToast(
         `已生成 ${batchCount} 条完整测试身份${elapsedMs === undefined ? "" : ` · ${elapsedMs.toFixed(1)}ms`}`,
@@ -521,6 +748,9 @@ export default function Home() {
     const worker = new Worker(new URL("./batch-worker.ts", import.meta.url), {
       type: "module",
     });
+    const requestSignature = batchConfigurationSignature;
+    batchWorkerRef.current?.terminate();
+    batchWorkerRef.current = worker;
     const request: BatchWorkerRequest = {
       countryCode,
       count: batchCount,
@@ -530,23 +760,9 @@ export default function Home() {
       caseMode,
       scenario,
       cityChoice,
-      allowedCities: availableCities.map((city) => city.name),
-      allowedGeoCities:
-        geoData?.country.code === countryCode && regionChoice !== "random"
-          ? availableCities.map((city) => ({
-              name: city.name,
-              region: regionChoice,
-              timezone: city.timezone,
-            }))
-          : geoData?.country.code === countryCode
-            ? geoData.regions.flatMap((region) =>
-                region.cities.map((city) => ({
-                  name: city.name,
-                  region: region.name,
-                  timezone: city.timezone || region.timezone,
-                })),
-              )
-            : [],
+      regionChoice,
+      geoDataPath: country.geoDataPath,
+      currencyChoice,
       genderChoice,
       ageChoice: resolvedAgeChoice,
       firstNameOverride,
@@ -555,14 +771,30 @@ export default function Home() {
       postalCodeOverride,
     };
     worker.onmessage = (event: MessageEvent<BatchWorkerResponse>) => {
+      if (
+        batchWorkerRef.current !== worker ||
+        batchConfigurationRef.current !== requestSignature
+      ) {
+        worker.terminate();
+        return;
+      }
       if (event.data.ok) {
         finish(event.data.profiles, event.data.elapsedMs);
       } else {
         fallback();
       }
+      batchWorkerRef.current = null;
       worker.terminate();
     };
     worker.onerror = () => {
+      if (
+        batchWorkerRef.current !== worker ||
+        batchConfigurationRef.current !== requestSignature
+      ) {
+        worker.terminate();
+        return;
+      }
+      batchWorkerRef.current = null;
       worker.terminate();
       fallback();
     };
@@ -599,6 +831,7 @@ export default function Home() {
     const url = new URL(window.location.href);
     url.search = new URLSearchParams({
       country: countryCode,
+      currency: currencyChoice,
       scenario,
       case: caseMode,
       seed,
@@ -627,6 +860,7 @@ export default function Home() {
       if (!raw) throw new Error("NO_SAVED_CONFIGURATION");
       const saved = JSON.parse(raw) as {
         countryCode?: string;
+        currencyChoice?: string;
         scenario?: IdentityScenario;
         caseMode?: IbanCaseMode;
         batchCount?: number;
@@ -636,7 +870,6 @@ export default function Home() {
         changeCountry(saved.countryCode);
       }
       if (saved.scenario) setScenario(saved.scenario);
-      if (saved.caseMode) setCaseMode(saved.caseMode);
       if (saved.batchCount) {
         setBatchCount(saved.batchCount);
         setGenerateMode(saved.batchCount > 1 ? "batch" : "single");
@@ -649,7 +882,19 @@ export default function Home() {
       const restoredCountry = COUNTRY_MAP.get(restoredCountryCode) ?? country;
       const restoredSeed = saved.seed ?? "";
       const restoredScenario = saved.scenario ?? "complete";
-      const restoredCaseMode = saved.caseMode ?? "valid";
+      const restoredCaseMode = isSupportedCaseMode(
+        saved.caseMode,
+        Boolean(restoredCountry.ibanSpec),
+      )
+        ? saved.caseMode
+        : "valid";
+      setCaseMode(restoredCaseMode);
+      const restoredCurrency =
+        saved.currencyChoice &&
+        restoredCountry.currencies.includes(saved.currencyChoice)
+          ? saved.currencyChoice
+          : restoredCountry.currency;
+      setCurrencyChoice(restoredCurrency);
       const restoredBanking = generateNationalBanking(
         restoredCountry,
         createRandomInt(restoredSeed ? `${restoredSeed}:iban:0` : undefined),
@@ -660,6 +905,7 @@ export default function Home() {
           countryCode: restoredCountryCode,
           iban: restoredBanking.iban ?? "",
           bankingIdentity: restoredBanking,
+          currencyOverride: restoredCurrency,
           scenario: restoredScenario,
           seed: restoredSeed,
         }),
@@ -674,6 +920,7 @@ export default function Home() {
   const resetConfiguration = () => {
     setRegionChoice("random");
     setCityChoice("random");
+    setCityQuery("");
     setGenderChoice("random");
     setAgeMode("random");
     setExactAge(32);
@@ -691,6 +938,7 @@ export default function Home() {
     setGenerateMode("single");
     setBatchCount(10);
     setFormatted(true);
+    setCurrencyChoice(country.currency);
     const resetBanking = generateNationalBanking(
       country,
       createRandomInt(),
@@ -701,6 +949,7 @@ export default function Home() {
         countryCode,
         iban: resetBanking.iban ?? "",
         bankingIdentity: resetBanking,
+        currencyOverride: country.currency,
         scenario: "complete",
       }),
     ]);
@@ -713,7 +962,23 @@ export default function Home() {
     const bban = compact.slice(4);
     const beforeBank = bban.slice(0, spec.bankCodeStart);
     const bank = bban.slice(spec.bankCodeStart, spec.bankCodeStart + spec.bankCodeLen);
-    const between = bban.slice(spec.bankCodeStart + spec.bankCodeLen, spec.accountStart);
+    const bankEnd = spec.bankCodeStart + spec.bankCodeLen;
+    const branch =
+      spec.branchCodeStart === null
+        ? ""
+        : bban.slice(
+            spec.branchCodeStart,
+            spec.branchCodeStart + spec.branchCodeLen,
+          );
+    const beforeBranch =
+      spec.branchCodeStart === null
+        ? ""
+        : bban.slice(bankEnd, spec.branchCodeStart);
+    const routingEnd =
+      spec.branchCodeStart === null
+        ? bankEnd
+        : spec.branchCodeStart + spec.branchCodeLen;
+    const beforeAccount = bban.slice(routingEnd, spec.accountStart);
     const accountValue = bban.slice(spec.accountStart, spec.accountStart + spec.accountLen);
     const after = bban.slice(spec.accountStart + spec.accountLen);
     return (
@@ -722,7 +987,9 @@ export default function Home() {
         <span className="segment-check">{compact.slice(2, 4)}</span>
         {beforeBank && <span className="segment-extra">{beforeBank}</span>}
         <span className="segment-bank">{bank}</span>
-        {between && <span className="segment-extra">{between}</span>}
+        {beforeBranch && <span className="segment-extra">{beforeBranch}</span>}
+        {branch && <span className="segment-branch">{branch}</span>}
+        {beforeAccount && <span className="segment-extra">{beforeAccount}</span>}
         <span className="segment-account">{accountValue}</span>
         {after && <span className="segment-extra">{after}</span>}
       </div>
@@ -740,7 +1007,14 @@ export default function Home() {
         <div className="header-meta">
           <span className="local-badge"><i /> 100% 本地运行</span>
           <span className="standard-mark"><b>ISO</b> 13616</span>
-          <button className="header-command" type="button" onClick={() => setCommandOpen(true)}>命令 <kbd>⌘K</kbd></button>
+          <button
+            ref={commandTriggerRef}
+            className="header-command"
+            type="button"
+            onClick={() => setCommandOpen(true)}
+          >
+            命令 <kbd>⌘K</kbd>
+          </button>
           <button className="header-command" type="button" onClick={() => setTheme(theme === "light" ? "dark" : "light")}>{theme === "light" ? "深色" : "浅色"}</button>
           <a className="header-link" href="#tool">开始使用 <span>↓</span></a>
         </div>
@@ -750,7 +1024,7 @@ export default function Home() {
         <div>
           <p className="eyebrow">COMPLETE SYNTHETIC IDENTITY · IBAN</p>
           <h1>一个身份，<em>所有测试数据。</em></h1>
-          <p className="lede">选择国家、地区、城市、性别与年龄，一次生成本地化身份、地址、税务与保险测试字段，以及 IBAN、ABA、加拿大路由或 CLABE 等对应银行数据。</p>
+          <p className="lede">选择国家或地区、行政区、城市、性别与年龄，一次生成本地化身份、地址、税务与保险测试字段，以及 IBAN、ABA、加拿大路由、CLABE 或 CBU 等对应银行数据。</p>
           <div className="platform-row" role="group" aria-label="支持的部署平台">
             <span className="platform-label">DEPLOY ANYWHERE</span>
             <span className="platform-chip vercel-chip"><b>▲</b> Vercel</span>
@@ -759,9 +1033,11 @@ export default function Home() {
           </div>
         </div>
         <div className="intro-stat" role="group" aria-label="性能指标">
-          <span>COUNTRIES</span>
+          <span>COUNTRIES / AREAS</span>
           <strong>{COUNTRIES.length}</strong>
-          <small>{IBAN_COUNTRIES.length} IBAN · 35 Americas</small>
+          <small>
+            {IBAN_COUNTRIES.length} IBAN · {WORLD_GEO_COUNTS.cities.toLocaleString()} cities
+          </small>
         </div>
       </section>
 
@@ -787,9 +1063,11 @@ export default function Home() {
 
             <div className="config-summary">
               <span>{country.flag} {country.code}</span>
-              <span>{regionChoice === "random" ? "全地区" : regionChoice}</span>
+              <span>{regionChoiceLabel}</span>
               <span>{genderChoice === "random" ? "随机性别" : genderChoice === "female" ? "女性" : "男性"}</span>
-              <span>{generateMode === "single" ? "1 条" : `${batchCount} 条`}</span>
+              <span>
+                {currencyChoice} · {generateMode === "single" ? "1 条" : `${batchCount} 条`}
+              </span>
             </div>
 
             <section className="quick-start" aria-labelledby="quick-start-title">
@@ -839,17 +1117,19 @@ export default function Home() {
                     placeholder="搜索国家、代码或币种"
                     onChange={(event) => setCountryQuery(event.target.value)}
                   />
-                  <div className="mini-segmented">
-                    {(["all", "sepa", "global"] as const).map((scope) => (
-                      <button
-                        type="button"
-                        key={scope}
-                        className={countryScope === scope ? "active" : ""}
-                        onClick={() => setCountryScope(scope)}
-                      >
-                        {scope === "all" ? "全部" : scope === "sepa" ? "SEPA" : "美洲"}
-                      </button>
-                    ))}
+                  <div className="select-wrap country-scope-select">
+                    <select
+                      aria-label="按全球区域筛选"
+                      value={countryScope}
+                      onChange={(event) =>
+                        setCountryScope(event.target.value as CountryScope)
+                      }
+                    >
+                      {COUNTRY_SCOPES.map(([value, label]) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
+                    </select>
+                    <span>⌄</span>
                   </div>
                 </div>
                 <div className="select-wrap">
@@ -866,12 +1146,33 @@ export default function Home() {
                   <span>⌄</span>
                 </div>
                 <small>
-                  {country.currency} · {country.ibanSpec
+                  {country.currencies.join(" / ")} · {country.ibanSpec
                     ? `${country.ibanSpec.length} 位 IBAN${country.ibanSpec.sepa ? " · SEPA" : ""}`
                     : `${country.payment.label} · 非 IBAN 国家`}
                   {" · "}{filteredCountries.length} 个匹配
                 </small>
               </div>
+
+              {country.currencies.length > 1 && (
+                <div className="field">
+                  <label htmlFor="identity-currency">测试结算币种</label>
+                  <div className="select-wrap">
+                    <select
+                      id="identity-currency"
+                      value={currencyChoice}
+                      onChange={(event) => setCurrencyChoice(event.target.value)}
+                    >
+                      {country.currencies.map((currency) => (
+                        <option key={currency} value={currency}>
+                          {currency}
+                        </option>
+                      ))}
+                    </select>
+                    <span>⌄</span>
+                  </div>
+                  <small>SIX ISO 4217 · 该市场支持多个流通币种</small>
+                </div>
+              )}
 
               <div className="two-column-fields">
                 <div className="field">
@@ -883,11 +1184,14 @@ export default function Home() {
                       onChange={(event) => {
                         setRegionChoice(event.target.value);
                         setCityChoice("random");
+                        setCityQuery("");
                       }}
                     >
                       <option value="random">全部地区</option>
                       {regionOptions.map((region) => (
-                        <option key={region} value={region}>{region}</option>
+                        <option key={region.value} value={region.value}>
+                          {region.label}
+                        </option>
                       ))}
                     </select>
                     <span>⌄</span>
@@ -895,6 +1199,15 @@ export default function Home() {
                 </div>
                 <div className="field">
                   <label htmlFor="identity-city">城市</label>
+                  {availableCities.length > 100 && (
+                    <input
+                      className="city-search-input"
+                      aria-label="搜索当前地区城市"
+                      value={cityQuery}
+                      placeholder={`搜索 ${availableCities.length.toLocaleString()} 个城市`}
+                      onChange={(event) => setCityQuery(event.target.value)}
+                    />
+                  )}
                   <div className="select-wrap">
                     <select
                       id="identity-city"
@@ -904,30 +1217,47 @@ export default function Home() {
                       <option value="random">
                         {geoLoading
                           ? "正在加载城市目录…"
+                          : usesSyntheticLocality
+                            ? "合成测试城市（上游暂无城市记录）"
                           : regionChoice === "random" && geoData
                             ? "随机城市（先选地区可指定）"
                             : "随机城市"}
                       </option>
-                      {availableCities.map((city) => (
-                        <option key={city.name} value={city.name}>{city.name}</option>
+                      {visibleCityOptions.map((city) => (
+                        <option
+                          key={city.name}
+                          value={city.name}
+                        >
+                          {city.name}
+                        </option>
                       ))}
                     </select>
                     <span>⌄</span>
                   </div>
+                  {availableCities.length > 100 && (
+                    <small>
+                      显示前 {visibleCityOptions.length} 个匹配项；输入名称可检索完整目录
+                    </small>
+                  )}
+                  {usesSyntheticLocality && (
+                    <small>
+                      将使用带 “Test Locality” 标记的合成城市，并保留所选真实地区名称
+                    </small>
+                  )}
                 </div>
               </div>
-              {country.geoDataPath && (
-                <div className="geo-source-note">
-                  <strong>
-                    {geoLoading
-                      ? "正在按国家加载地理目录…"
-                      : geoData
+              <div className="geo-source-note">
+                <strong>
+                  {geoLoading
+                    ? "正在按国家加载地理目录…"
+                    : geoData?.country.code === countryCode
+                      ? geoData.counts.cities > 0
                         ? `${geoData.counts.regions} 个地区 · ${geoData.counts.cities.toLocaleString()} 个城市`
-                        : geoError}
-                  </strong>
-                  <span>ODbL 社区目录 · 非政府实时名录，不能保证永久完整或零错误</span>
-                </div>
-              )}
+                        : "该国家/地区在当前源中没有城市记录，将使用明确标记的测试占位地址"
+                      : geoError}
+                </strong>
+                <span>全球按国家懒加载 · ODbL 社区目录 · 非政府实时名录</span>
+              </div>
             </section>
 
             <section className="config-group">
@@ -1110,10 +1440,31 @@ export default function Home() {
               </div>
               <div className="field format-field">
                 <div>
-                  <label htmlFor="format-toggle">{country.ibanSpec ? "IBAN 显示空格" : "支付标识显示格式"}</label>
-                  <small>{country.ibanSpec ? (formatted ? "DE89 3704 …" : "DE893704…") : country.payment.label}</small>
+                  <label htmlFor={country.ibanSpec ? "format-toggle" : undefined}>
+                    {country.ibanSpec ? "IBAN 显示空格" : "支付标识质量"}
+                  </label>
+                  <small>
+                    {country.ibanSpec
+                      ? formatted
+                        ? "DE89 3704 …"
+                        : "DE893704…"
+                      : country.payment.validation === "checksum"
+                        ? "包含已实现的校验算法"
+                        : "格式测试值 · 不查询真实目录"}
+                  </small>
                 </div>
-                <button id="format-toggle" type="button" className={`toggle ${formatted ? "on" : ""}`} onClick={() => setFormatted(!formatted)} role="switch" aria-checked={formatted}><span /></button>
+                {country.ibanSpec && (
+                  <button
+                    id="format-toggle"
+                    type="button"
+                    className={`toggle ${formatted ? "on" : ""}`}
+                    onClick={() => setFormatted(!formatted)}
+                    role="switch"
+                    aria-checked={formatted}
+                  >
+                    <span />
+                  </button>
+                )}
               </div>
             </section>
 
@@ -1128,7 +1479,11 @@ export default function Home() {
                     <label htmlFor="case-mode">测试用例</label>
                     <div className="select-wrap">
                       <select id="case-mode" value={caseMode} onChange={(event) => setCaseMode(event.target.value as IbanCaseMode)}>
-                        {CASE_MODES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                        {caseModeOptions.map((item) => (
+                          <option key={item.value} value={item.value}>
+                            {item.label}
+                          </option>
+                        ))}
                       </select>
                       <span>⌄</span>
                     </div>
@@ -1199,6 +1554,7 @@ export default function Home() {
                   <span>{activeProfile.address.city}</span>
                   <span>{activeProfile.personal.gender === "female" ? "女性" : "男性"}</span>
                   <span>{activeProfile.personal.age} 岁</span>
+                  <span>{activeProfile.banking.currency}</span>
                   <span>{SCENARIOS.find((item) => item.value === scenario)?.label}</span>
                   {seed && <span className="seed-chip"># {seed}</span>}
                 </div>
@@ -1343,6 +1699,9 @@ export default function Home() {
                       <span><i className="dot-country" /> 国家代码</span>
                       <span><i className="dot-check" /> 校验码</span>
                       <span><i className="dot-bank" /> 银行代码</span>
+                      {country.ibanSpec.branchCodeStart !== null && (
+                        <span><i className="dot-branch" /> 分行代码</span>
+                      )}
                       <span><i className="dot-account" /> 账号</span>
                     </div>
                   </div>
@@ -1356,6 +1715,9 @@ export default function Home() {
                       <div><span>Scheme</span><strong>{activeProfile.banking.paymentIdentifier.scheme}</strong></div>
                       <div><span>Routing</span><strong>{activeProfile.banking.paymentIdentifier.routingNumber ?? "N/A"}</strong></div>
                       <div><span>Institution</span><strong>{activeProfile.banking.paymentIdentifier.institutionCode ?? "N/A"}</strong></div>
+                      {activeProfile.banking.paymentIdentifier.branchCode && (
+                        <div><span>Branch</span><strong>{activeProfile.banking.paymentIdentifier.branchCode}</strong></div>
+                      )}
                       <div><span>Account</span><strong>{activeProfile.banking.paymentIdentifier.accountNumber}</strong></div>
                     </div>
                     <p className="structure-disclaimer">这是软件测试值，不会查询真实银行、分行或账户目录。</p>
@@ -1531,7 +1893,14 @@ export default function Home() {
             {validation.country && validation.compact.length >= 4 && (
               <>
                 <div className="inspector-spec">
-                  <div><span>国家</span><strong>{validation.country.flag} {validation.country.name}</strong></div>
+                  <div>
+                    <span>国家</span>
+                    <strong>
+                      {validation.country.flag}{" "}
+                      {COUNTRY_MAP.get(validation.country.code)?.name ??
+                        validation.country.name}
+                    </strong>
+                  </div>
                   <div><span>规范长度</span><strong>{validation.country.length} 位</strong></div>
                   <div><span>算法</span><strong>ISO 13616</strong></div>
                 </div>
@@ -1562,7 +1931,14 @@ export default function Home() {
 
       {commandOpen && (
         <div className="command-backdrop" role="presentation" onMouseDown={() => setCommandOpen(false)}>
-          <div className="command-palette" role="dialog" aria-modal="true" aria-label="命令面板" onMouseDown={(event) => event.stopPropagation()}>
+          <div
+            ref={commandDialogRef}
+            className="command-palette"
+            role="dialog"
+            aria-modal="true"
+            aria-label="命令面板"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
             <div><span>IBAN DEVTOOLS COMMANDS</span><button type="button" onClick={() => setCommandOpen(false)}>Esc</button></div>
             <button type="button" onClick={() => { setTab("generate"); regenerate(); setCommandOpen(false); }}><strong>生成一条完整身份</strong><kbd>↵</kbd></button>
             <button type="button" onClick={() => { setTab("validate"); setCommandOpen(false); }}><strong>打开 IBAN 校验器</strong><span>Inspect</span></button>

@@ -10,6 +10,10 @@ import {
 } from "@/lib/global-test-data";
 import { type IbanCaseMode } from "@/lib/iban-core";
 import { COUNTRY_CATALOG_MAP } from "@/lib/country-catalog";
+import {
+  selectGeoCityOrFixture,
+  type CountryGeoData,
+} from "@/lib/geo-data";
 import { generateNationalBanking } from "@/lib/national-banking";
 
 export type BatchWorkerRequest = {
@@ -21,12 +25,9 @@ export type BatchWorkerRequest = {
   caseMode: IbanCaseMode;
   scenario: IdentityScenario;
   cityChoice: string;
-  allowedCities: string[];
-  allowedGeoCities: Array<{
-    name: string;
-    region: string;
-    timezone?: string;
-  }>;
+  regionChoice: string;
+  geoDataPath: string;
+  currencyChoice: string;
   genderChoice: ProfileGender | "random";
   ageChoice: AgeChoice;
   firstNameOverride: string;
@@ -39,7 +40,7 @@ export type BatchWorkerResponse =
   | { ok: true; profiles: SyntheticIdentity[]; elapsedMs: number }
   | { ok: false; error: string };
 
-self.addEventListener("message", (event: MessageEvent<BatchWorkerRequest>) => {
+self.addEventListener("message", async (event: MessageEvent<BatchWorkerRequest>) => {
   const input = event.data;
   const country = COUNTRY_CATALOG_MAP.get(input.countryCode);
   if (!country) {
@@ -48,6 +49,14 @@ self.addEventListener("message", (event: MessageEvent<BatchWorkerRequest>) => {
   }
 
   const started = performance.now();
+  let geoData: CountryGeoData | null = null;
+  try {
+    const response = await fetch(input.geoDataPath);
+    if (response.ok) geoData = (await response.json()) as CountryGeoData;
+  } catch {
+    geoData = null;
+  }
+
   const profiles = Array.from({ length: input.count }, (_, index) => {
     const bankingIdentity = generateNationalBanking(
       country,
@@ -58,28 +67,21 @@ self.addEventListener("message", (event: MessageEvent<BatchWorkerRequest>) => {
         caseMode: input.caseMode,
       },
     );
-    const geoCity =
-      input.allowedGeoCities[
-        createRandomInt(input.seed ? `${input.seed}:city:${index}` : undefined)(
-          input.allowedGeoCities.length,
+    const geoCity = geoData
+      ? selectGeoCityOrFixture(
+          geoData,
+          input.regionChoice,
+          input.cityChoice,
+          createRandomInt(
+            input.seed ? `${input.seed}:city:${index}` : undefined,
+          ),
         )
-      ];
-    const cityName =
-      geoCity
-        ? "random"
-        :
-      input.cityChoice !== "random"
-        ? input.cityChoice
-        : input.allowedCities[
-            createRandomInt(input.seed ? `${input.seed}:city:${index}` : undefined)(
-              input.allowedCities.length,
-            )
-          ] ?? "random";
+      : undefined;
     return generateSyntheticIdentity({
       countryCode: input.countryCode,
       iban: bankingIdentity.iban ?? "",
       bankingIdentity,
-      cityName,
+      cityName: geoCity ? "random" : input.cityChoice,
       cityOverride: geoCity,
       genderChoice: input.genderChoice,
       ageChoice: input.ageChoice,
@@ -87,6 +89,7 @@ self.addEventListener("message", (event: MessageEvent<BatchWorkerRequest>) => {
       lastNameOverride: input.lastNameOverride,
       streetOverride: input.streetOverride,
       postalCodeOverride: input.postalCodeOverride,
+      currencyOverride: input.currencyChoice,
       scenario: input.scenario,
       seed: input.seed,
       index,

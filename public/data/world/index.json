@@ -1,0 +1,1775 @@
+{
+  "meta": {
+    "source": "Countries States Cities Database",
+    "sourceUrl": "https://github.com/dr5hn/countries-states-cities-database",
+    "release": "v3.2-export.6",
+    "sourceSha256": "c93ad3c0eeab9e11850020d214a0c25ee2b97113d637d052ffa3064860b0e234",
+    "currencySource": {
+      "source": "SIX ISO 4217 List One",
+      "sourceUrl": "https://www.six-group.com/dam/download/financial-information/data-center/iso-currrency/lists/list-one.xml",
+      "release": "2026-01-01",
+      "sourceSha256": "838dfb991648cf36df939edd5fe3811737962b75a32252847d239cedd1e291c9"
+    },
+    "license": "ODbL-1.0",
+    "quality": "community-maintained-reference-not-official"
+  },
+  "counts": {
+    "countries": 250,
+    "countriesWithCities": 223,
+    "countriesWithoutCities": 27,
+    "regions": 5308,
+    "cities": 152970
+  },
+  "countries": [
+    {
+      "code": "AD",
+      "name": "Andorra",
+      "path": "/data/world/ad.json",
+      "regions": 7,
+      "cities": 10
+    },
+    {
+      "code": "AE",
+      "name": "United Arab Emirates",
+      "path": "/data/world/ae.json",
+      "regions": 7,
+      "cities": 30
+    },
+    {
+      "code": "AF",
+      "name": "Afghanistan",
+      "path": "/data/world/af.json",
+      "regions": 34,
+      "cities": 100
+    },
+    {
+      "code": "AG",
+      "name": "Antigua and Barbuda",
+      "path": "/data/world/ag.json",
+      "regions": 8,
+      "cities": 9
+    },
+    {
+      "code": "AI",
+      "name": "Anguilla",
+      "path": "/data/world/ai.json",
+      "regions": 14,
+      "cities": 0
+    },
+    {
+      "code": "AL",
+      "name": "Albania",
+      "path": "/data/world/al.json",
+      "regions": 12,
+      "cities": 143
+    },
+    {
+      "code": "AM",
+      "name": "Armenia",
+      "path": "/data/world/am.json",
+      "regions": 11,
+      "cities": 308
+    },
+    {
+      "code": "AO",
+      "name": "Angola",
+      "path": "/data/world/ao.json",
+      "regions": 18,
+      "cities": 72
+    },
+    {
+      "code": "AQ",
+      "name": "Antarctica",
+      "path": "/data/world/aq.json",
+      "regions": 0,
+      "cities": 0
+    },
+    {
+      "code": "AR",
+      "name": "Argentina",
+      "path": "/data/world/ar.json",
+      "regions": 24,
+      "cities": 1136
+    },
+    {
+      "code": "AS",
+      "name": "American Samoa",
+      "path": "/data/world/as.json",
+      "regions": 5,
+      "cities": 14
+    },
+    {
+      "code": "AT",
+      "name": "Austria",
+      "path": "/data/world/at.json",
+      "regions": 9,
+      "cities": 2360
+    },
+    {
+      "code": "AU",
+      "name": "Australia",
+      "path": "/data/world/au.json",
+      "regions": 8,
+      "cities": 4147
+    },
+    {
+      "code": "AW",
+      "name": "Aruba",
+      "path": "/data/world/aw.json",
+      "regions": 9,
+      "cities": 12
+    },
+    {
+      "code": "AX",
+      "name": "Aland Islands",
+      "path": "/data/world/ax.json",
+      "regions": 16,
+      "cities": 12
+    },
+    {
+      "code": "AZ",
+      "name": "Azerbaijan",
+      "path": "/data/world/az.json",
+      "regions": 78,
+      "cities": 180
+    },
+    {
+      "code": "BA",
+      "name": "Bosnia and Herzegovina",
+      "path": "/data/world/ba.json",
+      "regions": 3,
+      "cities": 232
+    },
+    {
+      "code": "BB",
+      "name": "Barbados",
+      "path": "/data/world/bb.json",
+      "regions": 11,
+      "cities": 7
+    },
+    {
+      "code": "BD",
+      "name": "Bangladesh",
+      "path": "/data/world/bd.json",
+      "regions": 72,
+      "cities": 64
+    },
+    {
+      "code": "BE",
+      "name": "Belgium",
+      "path": "/data/world/be.json",
+      "regions": 13,
+      "cities": 549
+    },
+    {
+      "code": "BF",
+      "name": "Burkina Faso",
+      "path": "/data/world/bf.json",
+      "regions": 58,
+      "cities": 92
+    },
+    {
+      "code": "BG",
+      "name": "Bulgaria",
+      "path": "/data/world/bg.json",
+      "regions": 28,
+      "cities": 504
+    },
+    {
+      "code": "BH",
+      "name": "Bahrain",
+      "path": "/data/world/bh.json",
+      "regions": 4,
+      "cities": 9
+    },
+    {
+      "code": "BI",
+      "name": "Burundi",
+      "path": "/data/world/bi.json",
+      "regions": 18,
+      "cities": 17
+    },
+    {
+      "code": "BJ",
+      "name": "Benin",
+      "path": "/data/world/bj.json",
+      "regions": 12,
+      "cities": 36
+    },
+    {
+      "code": "BL",
+      "name": "Saint-Barthelemy",
+      "path": "/data/world/bl.json",
+      "regions": 1,
+      "cities": 1
+    },
+    {
+      "code": "BM",
+      "name": "Bermuda",
+      "path": "/data/world/bm.json",
+      "regions": 9,
+      "cities": 9
+    },
+    {
+      "code": "BN",
+      "name": "Brunei",
+      "path": "/data/world/bn.json",
+      "regions": 4,
+      "cities": 9
+    },
+    {
+      "code": "BO",
+      "name": "Bolivia",
+      "path": "/data/world/bo.json",
+      "regions": 9,
+      "cities": 228
+    },
+    {
+      "code": "BQ",
+      "name": "Bonaire, Sint Eustatius and Saba",
+      "path": "/data/world/bq.json",
+      "regions": 3,
+      "cities": 8
+    },
+    {
+      "code": "BR",
+      "name": "Brazil",
+      "path": "/data/world/br.json",
+      "regions": 27,
+      "cities": 5629
+    },
+    {
+      "code": "BS",
+      "name": "The Bahamas",
+      "path": "/data/world/bs.json",
+      "regions": 32,
+      "cities": 21
+    },
+    {
+      "code": "BT",
+      "name": "Bhutan",
+      "path": "/data/world/bt.json",
+      "regions": 20,
+      "cities": 57
+    },
+    {
+      "code": "BV",
+      "name": "Bouvet Island",
+      "path": "/data/world/bv.json",
+      "regions": 0,
+      "cities": 0
+    },
+    {
+      "code": "BW",
+      "name": "Botswana",
+      "path": "/data/world/bw.json",
+      "regions": 16,
+      "cities": 75
+    },
+    {
+      "code": "BY",
+      "name": "Belarus",
+      "path": "/data/world/by.json",
+      "regions": 7,
+      "cities": 329
+    },
+    {
+      "code": "BZ",
+      "name": "Belize",
+      "path": "/data/world/bz.json",
+      "regions": 6,
+      "cities": 13
+    },
+    {
+      "code": "CA",
+      "name": "Canada",
+      "path": "/data/world/ca.json",
+      "regions": 13,
+      "cities": 1080
+    },
+    {
+      "code": "CC",
+      "name": "Cocos (Keeling) Islands",
+      "path": "/data/world/cc.json",
+      "regions": 0,
+      "cities": 0
+    },
+    {
+      "code": "CD",
+      "name": "Democratic Republic of the Congo",
+      "path": "/data/world/cd.json",
+      "regions": 26,
+      "cities": 67
+    },
+    {
+      "code": "CF",
+      "name": "Central African Republic",
+      "path": "/data/world/cf.json",
+      "regions": 17,
+      "cities": 42
+    },
+    {
+      "code": "CG",
+      "name": "Congo",
+      "path": "/data/world/cg.json",
+      "regions": 12,
+      "cities": 17
+    },
+    {
+      "code": "CH",
+      "name": "Switzerland",
+      "path": "/data/world/ch.json",
+      "regions": 26,
+      "cities": 1507
+    },
+    {
+      "code": "CI",
+      "name": "Ivory Coast",
+      "path": "/data/world/ci.json",
+      "regions": 14,
+      "cities": 95
+    },
+    {
+      "code": "CK",
+      "name": "Cook Islands",
+      "path": "/data/world/ck.json",
+      "regions": 0,
+      "cities": 0
+    },
+    {
+      "code": "CL",
+      "name": "Chile",
+      "path": "/data/world/cl.json",
+      "regions": 16,
+      "cities": 300
+    },
+    {
+      "code": "CM",
+      "name": "Cameroon",
+      "path": "/data/world/cm.json",
+      "regions": 10,
+      "cities": 139
+    },
+    {
+      "code": "CN",
+      "name": "China",
+      "path": "/data/world/cn.json",
+      "regions": 34,
+      "cities": 4133
+    },
+    {
+      "code": "CO",
+      "name": "Colombia",
+      "path": "/data/world/co.json",
+      "regions": 33,
+      "cities": 1122
+    },
+    {
+      "code": "CR",
+      "name": "Costa Rica",
+      "path": "/data/world/cr.json",
+      "regions": 7,
+      "cities": 159
+    },
+    {
+      "code": "CU",
+      "name": "Cuba",
+      "path": "/data/world/cu.json",
+      "regions": 16,
+      "cities": 187
+    },
+    {
+      "code": "CV",
+      "name": "Cape Verde",
+      "path": "/data/world/cv.json",
+      "regions": 24,
+      "cities": 28
+    },
+    {
+      "code": "CW",
+      "name": "Curaçao",
+      "path": "/data/world/cw.json",
+      "regions": 0,
+      "cities": 0
+    },
+    {
+      "code": "CX",
+      "name": "Christmas Island",
+      "path": "/data/world/cx.json",
+      "regions": 0,
+      "cities": 0
+    },
+    {
+      "code": "CY",
+      "name": "Cyprus",
+      "path": "/data/world/cy.json",
+      "regions": 6,
+      "cities": 95
+    },
+    {
+      "code": "CZ",
+      "name": "Czech Republic",
+      "path": "/data/world/cz.json",
+      "regions": 90,
+      "cities": 1355
+    },
+    {
+      "code": "DE",
+      "name": "Germany",
+      "path": "/data/world/de.json",
+      "regions": 16,
+      "cities": 7104
+    },
+    {
+      "code": "DJ",
+      "name": "Djibouti",
+      "path": "/data/world/dj.json",
+      "regions": 6,
+      "cities": 12
+    },
+    {
+      "code": "DK",
+      "name": "Denmark",
+      "path": "/data/world/dk.json",
+      "regions": 5,
+      "cities": 430
+    },
+    {
+      "code": "DM",
+      "name": "Dominica",
+      "path": "/data/world/dm.json",
+      "regions": 10,
+      "cities": 17
+    },
+    {
+      "code": "DO",
+      "name": "Dominican Republic",
+      "path": "/data/world/do.json",
+      "regions": 42,
+      "cities": 207
+    },
+    {
+      "code": "DZ",
+      "name": "Algeria",
+      "path": "/data/world/dz.json",
+      "regions": 58,
+      "cities": 293
+    },
+    {
+      "code": "EC",
+      "name": "Ecuador",
+      "path": "/data/world/ec.json",
+      "regions": 24,
+      "cities": 114
+    },
+    {
+      "code": "EE",
+      "name": "Estonia",
+      "path": "/data/world/ee.json",
+      "regions": 94,
+      "cities": 162
+    },
+    {
+      "code": "EG",
+      "name": "Egypt",
+      "path": "/data/world/eg.json",
+      "regions": 27,
+      "cities": 163
+    },
+    {
+      "code": "EH",
+      "name": "Western Sahara",
+      "path": "/data/world/eh.json",
+      "regions": 0,
+      "cities": 0
+    },
+    {
+      "code": "ER",
+      "name": "Eritrea",
+      "path": "/data/world/er.json",
+      "regions": 6,
+      "cities": 11
+    },
+    {
+      "code": "ES",
+      "name": "Spain",
+      "path": "/data/world/es.json",
+      "regions": 69,
+      "cities": 8405
+    },
+    {
+      "code": "ET",
+      "name": "Ethiopia",
+      "path": "/data/world/et.json",
+      "regions": 13,
+      "cities": 144
+    },
+    {
+      "code": "FI",
+      "name": "Finland",
+      "path": "/data/world/fi.json",
+      "regions": 18,
+      "cities": 437
+    },
+    {
+      "code": "FJ",
+      "name": "Fiji Islands",
+      "path": "/data/world/fj.json",
+      "regions": 19,
+      "cities": 20
+    },
+    {
+      "code": "FK",
+      "name": "Falkland Islands",
+      "path": "/data/world/fk.json",
+      "regions": 0,
+      "cities": 0
+    },
+    {
+      "code": "FM",
+      "name": "Micronesia",
+      "path": "/data/world/fm.json",
+      "regions": 4,
+      "cities": 80
+    },
+    {
+      "code": "FO",
+      "name": "Faroe Islands",
+      "path": "/data/world/fo.json",
+      "regions": 6,
+      "cities": 27
+    },
+    {
+      "code": "FR",
+      "name": "France",
+      "path": "/data/world/fr.json",
+      "regions": 124,
+      "cities": 10534
+    },
+    {
+      "code": "GA",
+      "name": "Gabon",
+      "path": "/data/world/ga.json",
+      "regions": 9,
+      "cities": 28
+    },
+    {
+      "code": "GB",
+      "name": "United Kingdom",
+      "path": "/data/world/gb.json",
+      "regions": 221,
+      "cities": 3879
+    },
+    {
+      "code": "GD",
+      "name": "Grenada",
+      "path": "/data/world/gd.json",
+      "regions": 7,
+      "cities": 7
+    },
+    {
+      "code": "GE",
+      "name": "Georgia",
+      "path": "/data/world/ge.json",
+      "regions": 12,
+      "cities": 110
+    },
+    {
+      "code": "GF",
+      "name": "French Guiana",
+      "path": "/data/world/gf.json",
+      "regions": 1,
+      "cities": 22
+    },
+    {
+      "code": "GG",
+      "name": "Guernsey",
+      "path": "/data/world/gg.json",
+      "regions": 12,
+      "cities": 5
+    },
+    {
+      "code": "GH",
+      "name": "Ghana",
+      "path": "/data/world/gh.json",
+      "regions": 16,
+      "cities": 121
+    },
+    {
+      "code": "GI",
+      "name": "Gibraltar",
+      "path": "/data/world/gi.json",
+      "regions": 0,
+      "cities": 0
+    },
+    {
+      "code": "GL",
+      "name": "Greenland",
+      "path": "/data/world/gl.json",
+      "regions": 5,
+      "cities": 18
+    },
+    {
+      "code": "GM",
+      "name": "The Gambia",
+      "path": "/data/world/gm.json",
+      "regions": 6,
+      "cities": 104
+    },
+    {
+      "code": "GN",
+      "name": "Guinea",
+      "path": "/data/world/gn.json",
+      "regions": 41,
+      "cities": 54
+    },
+    {
+      "code": "GP",
+      "name": "Guadeloupe",
+      "path": "/data/world/gp.json",
+      "regions": 2,
+      "cities": 32
+    },
+    {
+      "code": "GQ",
+      "name": "Equatorial Guinea",
+      "path": "/data/world/gq.json",
+      "regions": 10,
+      "cities": 26
+    },
+    {
+      "code": "GR",
+      "name": "Greece",
+      "path": "/data/world/gr.json",
+      "regions": 15,
+      "cities": 1103
+    },
+    {
+      "code": "GS",
+      "name": "South Georgia",
+      "path": "/data/world/gs.json",
+      "regions": 0,
+      "cities": 0
+    },
+    {
+      "code": "GT",
+      "name": "Guatemala",
+      "path": "/data/world/gt.json",
+      "regions": 22,
+      "cities": 382
+    },
+    {
+      "code": "GU",
+      "name": "Guam",
+      "path": "/data/world/gu.json",
+      "regions": 19,
+      "cities": 25
+    },
+    {
+      "code": "GW",
+      "name": "Guinea-Bissau",
+      "path": "/data/world/gw.json",
+      "regions": 12,
+      "cities": 15
+    },
+    {
+      "code": "GY",
+      "name": "Guyana",
+      "path": "/data/world/gy.json",
+      "regions": 10,
+      "cities": 14
+    },
+    {
+      "code": "HK",
+      "name": "Hong Kong S.A.R.",
+      "path": "/data/world/hk.json",
+      "regions": 18,
+      "cities": 27
+    },
+    {
+      "code": "HM",
+      "name": "Heard Island and McDonald Islands",
+      "path": "/data/world/hm.json",
+      "regions": 0,
+      "cities": 0
+    },
+    {
+      "code": "HN",
+      "name": "Honduras",
+      "path": "/data/world/hn.json",
+      "regions": 18,
+      "cities": 545
+    },
+    {
+      "code": "HR",
+      "name": "Croatia",
+      "path": "/data/world/hr.json",
+      "regions": 20,
+      "cities": 663
+    },
+    {
+      "code": "HT",
+      "name": "Haiti",
+      "path": "/data/world/ht.json",
+      "regions": 10,
+      "cities": 124
+    },
+    {
+      "code": "HU",
+      "name": "Hungary",
+      "path": "/data/world/hu.json",
+      "regions": 43,
+      "cities": 1074
+    },
+    {
+      "code": "ID",
+      "name": "Indonesia",
+      "path": "/data/world/id.json",
+      "regions": 45,
+      "cities": 799
+    },
+    {
+      "code": "IE",
+      "name": "Ireland",
+      "path": "/data/world/ie.json",
+      "regions": 30,
+      "cities": 370
+    },
+    {
+      "code": "IL",
+      "name": "Israel",
+      "path": "/data/world/il.json",
+      "regions": 6,
+      "cities": 150
+    },
+    {
+      "code": "IM",
+      "name": "Man (Isle of)",
+      "path": "/data/world/im.json",
+      "regions": 6,
+      "cities": 16
+    },
+    {
+      "code": "IN",
+      "name": "India",
+      "path": "/data/world/in.json",
+      "regions": 36,
+      "cities": 4198
+    },
+    {
+      "code": "IO",
+      "name": "British Indian Ocean Territory",
+      "path": "/data/world/io.json",
+      "regions": 0,
+      "cities": 0
+    },
+    {
+      "code": "IQ",
+      "name": "Iraq",
+      "path": "/data/world/iq.json",
+      "regions": 19,
+      "cities": 135
+    },
+    {
+      "code": "IR",
+      "name": "Iran",
+      "path": "/data/world/ir.json",
+      "regions": 31,
+      "cities": 1847
+    },
+    {
+      "code": "IS",
+      "name": "Iceland",
+      "path": "/data/world/is.json",
+      "regions": 72,
+      "cities": 73
+    },
+    {
+      "code": "IT",
+      "name": "Italy",
+      "path": "/data/world/it.json",
+      "regions": 126,
+      "cities": 9852
+    },
+    {
+      "code": "JE",
+      "name": "Jersey",
+      "path": "/data/world/je.json",
+      "regions": 12,
+      "cities": 51
+    },
+    {
+      "code": "JM",
+      "name": "Jamaica",
+      "path": "/data/world/jm.json",
+      "regions": 14,
+      "cities": 837
+    },
+    {
+      "code": "JO",
+      "name": "Jordan",
+      "path": "/data/world/jo.json",
+      "regions": 12,
+      "cities": 82
+    },
+    {
+      "code": "JP",
+      "name": "Japan",
+      "path": "/data/world/jp.json",
+      "regions": 47,
+      "cities": 1655
+    },
+    {
+      "code": "KE",
+      "name": "Kenya",
+      "path": "/data/world/ke.json",
+      "regions": 47,
+      "cities": 145
+    },
+    {
+      "code": "KG",
+      "name": "Kyrgyzstan",
+      "path": "/data/world/kg.json",
+      "regions": 9,
+      "cities": 53
+    },
+    {
+      "code": "KH",
+      "name": "Cambodia",
+      "path": "/data/world/kh.json",
+      "regions": 25,
+      "cities": 107
+    },
+    {
+      "code": "KI",
+      "name": "Kiribati",
+      "path": "/data/world/ki.json",
+      "regions": 3,
+      "cities": 37
+    },
+    {
+      "code": "KM",
+      "name": "Comoros",
+      "path": "/data/world/km.json",
+      "regions": 3,
+      "cities": 88
+    },
+    {
+      "code": "KN",
+      "name": "Saint Kitts and Nevis",
+      "path": "/data/world/kn.json",
+      "regions": 16,
+      "cities": 13
+    },
+    {
+      "code": "KP",
+      "name": "North Korea",
+      "path": "/data/world/kp.json",
+      "regions": 13,
+      "cities": 80
+    },
+    {
+      "code": "KR",
+      "name": "South Korea",
+      "path": "/data/world/kr.json",
+      "regions": 17,
+      "cities": 308
+    },
+    {
+      "code": "KW",
+      "name": "Kuwait",
+      "path": "/data/world/kw.json",
+      "regions": 6,
+      "cities": 25
+    },
+    {
+      "code": "KY",
+      "name": "Cayman Islands",
+      "path": "/data/world/ky.json",
+      "regions": 3,
+      "cities": 7
+    },
+    {
+      "code": "KZ",
+      "name": "Kazakhstan",
+      "path": "/data/world/kz.json",
+      "regions": 20,
+      "cities": 259
+    },
+    {
+      "code": "LA",
+      "name": "Laos",
+      "path": "/data/world/la.json",
+      "regions": 18,
+      "cities": 76
+    },
+    {
+      "code": "LB",
+      "name": "Lebanon",
+      "path": "/data/world/lb.json",
+      "regions": 8,
+      "cities": 26
+    },
+    {
+      "code": "LC",
+      "name": "Saint Lucia",
+      "path": "/data/world/lc.json",
+      "regions": 10,
+      "cities": 479
+    },
+    {
+      "code": "LI",
+      "name": "Liechtenstein",
+      "path": "/data/world/li.json",
+      "regions": 11,
+      "cities": 11
+    },
+    {
+      "code": "LK",
+      "name": "Sri Lanka",
+      "path": "/data/world/lk.json",
+      "regions": 34,
+      "cities": 147
+    },
+    {
+      "code": "LR",
+      "name": "Liberia",
+      "path": "/data/world/lr.json",
+      "regions": 15,
+      "cities": 18
+    },
+    {
+      "code": "LS",
+      "name": "Lesotho",
+      "path": "/data/world/ls.json",
+      "regions": 10,
+      "cities": 12
+    },
+    {
+      "code": "LT",
+      "name": "Lithuania",
+      "path": "/data/world/lt.json",
+      "regions": 70,
+      "cities": 128
+    },
+    {
+      "code": "LU",
+      "name": "Luxembourg",
+      "path": "/data/world/lu.json",
+      "regions": 12,
+      "cities": 144
+    },
+    {
+      "code": "LV",
+      "name": "Latvia",
+      "path": "/data/world/lv.json",
+      "regions": 43,
+      "cities": 125
+    },
+    {
+      "code": "LY",
+      "name": "Libya",
+      "path": "/data/world/ly.json",
+      "regions": 22,
+      "cities": 54
+    },
+    {
+      "code": "MA",
+      "name": "Morocco",
+      "path": "/data/world/ma.json",
+      "regions": 87,
+      "cities": 222
+    },
+    {
+      "code": "MC",
+      "name": "Monaco",
+      "path": "/data/world/mc.json",
+      "regions": 17,
+      "cities": 17
+    },
+    {
+      "code": "MD",
+      "name": "Moldova",
+      "path": "/data/world/md.json",
+      "regions": 37,
+      "cities": 72
+    },
+    {
+      "code": "ME",
+      "name": "Montenegro",
+      "path": "/data/world/me.json",
+      "regions": 25,
+      "cities": 40
+    },
+    {
+      "code": "MF",
+      "name": "Saint-Martin (French part)",
+      "path": "/data/world/mf.json",
+      "regions": 1,
+      "cities": 1
+    },
+    {
+      "code": "MG",
+      "name": "Madagascar",
+      "path": "/data/world/mg.json",
+      "regions": 6,
+      "cities": 9
+    },
+    {
+      "code": "MH",
+      "name": "Marshall Islands",
+      "path": "/data/world/mh.json",
+      "regions": 26,
+      "cities": 26
+    },
+    {
+      "code": "MK",
+      "name": "North Macedonia",
+      "path": "/data/world/mk.json",
+      "regions": 80,
+      "cities": 194
+    },
+    {
+      "code": "ML",
+      "name": "Mali",
+      "path": "/data/world/ml.json",
+      "regions": 11,
+      "cities": 47
+    },
+    {
+      "code": "MM",
+      "name": "Myanmar",
+      "path": "/data/world/mm.json",
+      "regions": 15,
+      "cities": 74
+    },
+    {
+      "code": "MN",
+      "name": "Mongolia",
+      "path": "/data/world/mn.json",
+      "regions": 22,
+      "cities": 40
+    },
+    {
+      "code": "MO",
+      "name": "Macau S.A.R.",
+      "path": "/data/world/mo.json",
+      "regions": 0,
+      "cities": 0
+    },
+    {
+      "code": "MP",
+      "name": "Northern Mariana Islands",
+      "path": "/data/world/mp.json",
+      "regions": 0,
+      "cities": 0
+    },
+    {
+      "code": "MQ",
+      "name": "Martinique",
+      "path": "/data/world/mq.json",
+      "regions": 4,
+      "cities": 34
+    },
+    {
+      "code": "MR",
+      "name": "Mauritania",
+      "path": "/data/world/mr.json",
+      "regions": 15,
+      "cities": 42
+    },
+    {
+      "code": "MS",
+      "name": "Montserrat",
+      "path": "/data/world/ms.json",
+      "regions": 3,
+      "cities": 0
+    },
+    {
+      "code": "MT",
+      "name": "Malta",
+      "path": "/data/world/mt.json",
+      "regions": 68,
+      "cities": 87
+    },
+    {
+      "code": "MU",
+      "name": "Mauritius",
+      "path": "/data/world/mu.json",
+      "regions": 12,
+      "cities": 168
+    },
+    {
+      "code": "MV",
+      "name": "Maldives",
+      "path": "/data/world/mv.json",
+      "regions": 21,
+      "cities": 21
+    },
+    {
+      "code": "MW",
+      "name": "Malawi",
+      "path": "/data/world/mw.json",
+      "regions": 31,
+      "cities": 61
+    },
+    {
+      "code": "MX",
+      "name": "Mexico",
+      "path": "/data/world/mx.json",
+      "regions": 32,
+      "cities": 9321
+    },
+    {
+      "code": "MY",
+      "name": "Malaysia",
+      "path": "/data/world/my.json",
+      "regions": 16,
+      "cities": 223
+    },
+    {
+      "code": "MZ",
+      "name": "Mozambique",
+      "path": "/data/world/mz.json",
+      "regions": 11,
+      "cities": 38
+    },
+    {
+      "code": "NA",
+      "name": "Namibia",
+      "path": "/data/world/na.json",
+      "regions": 14,
+      "cities": 48
+    },
+    {
+      "code": "NC",
+      "name": "New Caledonia",
+      "path": "/data/world/nc.json",
+      "regions": 3,
+      "cities": 10
+    },
+    {
+      "code": "NE",
+      "name": "Niger",
+      "path": "/data/world/ne.json",
+      "regions": 8,
+      "cities": 71
+    },
+    {
+      "code": "NF",
+      "name": "Norfolk Island",
+      "path": "/data/world/nf.json",
+      "regions": 0,
+      "cities": 0
+    },
+    {
+      "code": "NG",
+      "name": "Nigeria",
+      "path": "/data/world/ng.json",
+      "regions": 37,
+      "cities": 491
+    },
+    {
+      "code": "NI",
+      "name": "Nicaragua",
+      "path": "/data/world/ni.json",
+      "regions": 17,
+      "cities": 155
+    },
+    {
+      "code": "NL",
+      "name": "Netherlands",
+      "path": "/data/world/nl.json",
+      "regions": 12,
+      "cities": 1644
+    },
+    {
+      "code": "NO",
+      "name": "Norway",
+      "path": "/data/world/no.json",
+      "regions": 17,
+      "cities": 666
+    },
+    {
+      "code": "NP",
+      "name": "Nepal",
+      "path": "/data/world/np.json",
+      "regions": 7,
+      "cities": 77
+    },
+    {
+      "code": "NR",
+      "name": "Nauru",
+      "path": "/data/world/nr.json",
+      "regions": 14,
+      "cities": 7
+    },
+    {
+      "code": "NU",
+      "name": "Niue",
+      "path": "/data/world/nu.json",
+      "regions": 14,
+      "cities": 0
+    },
+    {
+      "code": "NZ",
+      "name": "New Zealand",
+      "path": "/data/world/nz.json",
+      "regions": 17,
+      "cities": 160
+    },
+    {
+      "code": "OM",
+      "name": "Oman",
+      "path": "/data/world/om.json",
+      "regions": 11,
+      "cities": 28
+    },
+    {
+      "code": "PA",
+      "name": "Panama",
+      "path": "/data/world/pa.json",
+      "regions": 14,
+      "cities": 551
+    },
+    {
+      "code": "PE",
+      "name": "Peru",
+      "path": "/data/world/pe.json",
+      "regions": 26,
+      "cities": 485
+    },
+    {
+      "code": "PF",
+      "name": "French Polynesia",
+      "path": "/data/world/pf.json",
+      "regions": 5,
+      "cities": 48
+    },
+    {
+      "code": "PG",
+      "name": "Papua New Guinea",
+      "path": "/data/world/pg.json",
+      "regions": 22,
+      "cities": 100
+    },
+    {
+      "code": "PH",
+      "name": "Philippines",
+      "path": "/data/world/ph.json",
+      "regions": 99,
+      "cities": 5357
+    },
+    {
+      "code": "PK",
+      "name": "Pakistan",
+      "path": "/data/world/pk.json",
+      "regions": 7,
+      "cities": 456
+    },
+    {
+      "code": "PL",
+      "name": "Poland",
+      "path": "/data/world/pl.json",
+      "regions": 16,
+      "cities": 2810
+    },
+    {
+      "code": "PM",
+      "name": "Saint Pierre and Miquelon",
+      "path": "/data/world/pm.json",
+      "regions": 1,
+      "cities": 2
+    },
+    {
+      "code": "PN",
+      "name": "Pitcairn Island",
+      "path": "/data/world/pn.json",
+      "regions": 0,
+      "cities": 0
+    },
+    {
+      "code": "PR",
+      "name": "Puerto Rico",
+      "path": "/data/world/pr.json",
+      "regions": 78,
+      "cities": 78
+    },
+    {
+      "code": "PS",
+      "name": "Palestinian Territory Occupied",
+      "path": "/data/world/ps.json",
+      "regions": 16,
+      "cities": 132
+    },
+    {
+      "code": "PT",
+      "name": "Portugal",
+      "path": "/data/world/pt.json",
+      "regions": 20,
+      "cities": 1296
+    },
+    {
+      "code": "PW",
+      "name": "Palau",
+      "path": "/data/world/pw.json",
+      "regions": 16,
+      "cities": 15
+    },
+    {
+      "code": "PY",
+      "name": "Paraguay",
+      "path": "/data/world/py.json",
+      "regions": 18,
+      "cities": 152
+    },
+    {
+      "code": "QA",
+      "name": "Qatar",
+      "path": "/data/world/qa.json",
+      "regions": 8,
+      "cities": 15
+    },
+    {
+      "code": "RE",
+      "name": "Reunion",
+      "path": "/data/world/re.json",
+      "regions": 4,
+      "cities": 24
+    },
+    {
+      "code": "RO",
+      "name": "Romania",
+      "path": "/data/world/ro.json",
+      "regions": 42,
+      "cities": 7949
+    },
+    {
+      "code": "RS",
+      "name": "Serbia",
+      "path": "/data/world/rs.json",
+      "regions": 32,
+      "cities": 379
+    },
+    {
+      "code": "RU",
+      "name": "Russia",
+      "path": "/data/world/ru.json",
+      "regions": 83,
+      "cities": 5523
+    },
+    {
+      "code": "RW",
+      "name": "Rwanda",
+      "path": "/data/world/rw.json",
+      "regions": 5,
+      "cities": 12
+    },
+    {
+      "code": "SA",
+      "name": "Saudi Arabia",
+      "path": "/data/world/sa.json",
+      "regions": 13,
+      "cities": 399
+    },
+    {
+      "code": "SB",
+      "name": "Solomon Islands",
+      "path": "/data/world/sb.json",
+      "regions": 10,
+      "cities": 7
+    },
+    {
+      "code": "SC",
+      "name": "Seychelles",
+      "path": "/data/world/sc.json",
+      "regions": 27,
+      "cities": 9
+    },
+    {
+      "code": "SD",
+      "name": "Sudan",
+      "path": "/data/world/sd.json",
+      "regions": 18,
+      "cities": 71
+    },
+    {
+      "code": "SE",
+      "name": "Sweden",
+      "path": "/data/world/se.json",
+      "regions": 21,
+      "cities": 800
+    },
+    {
+      "code": "SG",
+      "name": "Singapore",
+      "path": "/data/world/sg.json",
+      "regions": 5,
+      "cities": 26
+    },
+    {
+      "code": "SH",
+      "name": "Saint Helena",
+      "path": "/data/world/sh.json",
+      "regions": 8,
+      "cities": 0
+    },
+    {
+      "code": "SI",
+      "name": "Slovenia",
+      "path": "/data/world/si.json",
+      "regions": 212,
+      "cities": 312
+    },
+    {
+      "code": "SJ",
+      "name": "Svalbard and Jan Mayen Islands",
+      "path": "/data/world/sj.json",
+      "regions": 0,
+      "cities": 0
+    },
+    {
+      "code": "SK",
+      "name": "Slovakia",
+      "path": "/data/world/sk.json",
+      "regions": 8,
+      "cities": 233
+    },
+    {
+      "code": "SL",
+      "name": "Sierra Leone",
+      "path": "/data/world/sl.json",
+      "regions": 5,
+      "cities": 91
+    },
+    {
+      "code": "SM",
+      "name": "San Marino",
+      "path": "/data/world/sm.json",
+      "regions": 9,
+      "cities": 9
+    },
+    {
+      "code": "SN",
+      "name": "Senegal",
+      "path": "/data/world/sn.json",
+      "regions": 14,
+      "cities": 73
+    },
+    {
+      "code": "SO",
+      "name": "Somalia",
+      "path": "/data/world/so.json",
+      "regions": 18,
+      "cities": 51
+    },
+    {
+      "code": "SR",
+      "name": "Suriname",
+      "path": "/data/world/sr.json",
+      "regions": 10,
+      "cities": 13
+    },
+    {
+      "code": "SS",
+      "name": "South Sudan",
+      "path": "/data/world/ss.json",
+      "regions": 10,
+      "cities": 1
+    },
+    {
+      "code": "ST",
+      "name": "Sao Tome and Principe",
+      "path": "/data/world/st.json",
+      "regions": 7,
+      "cities": 7
+    },
+    {
+      "code": "SV",
+      "name": "El Salvador",
+      "path": "/data/world/sv.json",
+      "regions": 14,
+      "cities": 100
+    },
+    {
+      "code": "SX",
+      "name": "Sint Maarten (Dutch part)",
+      "path": "/data/world/sx.json",
+      "regions": 0,
+      "cities": 0
+    },
+    {
+      "code": "SY",
+      "name": "Syria",
+      "path": "/data/world/sy.json",
+      "regions": 14,
+      "cities": 142
+    },
+    {
+      "code": "SZ",
+      "name": "Eswatini",
+      "path": "/data/world/sz.json",
+      "regions": 4,
+      "cities": 34
+    },
+    {
+      "code": "TC",
+      "name": "Turks and Caicos Islands",
+      "path": "/data/world/tc.json",
+      "regions": 6,
+      "cities": 0
+    },
+    {
+      "code": "TD",
+      "name": "Chad",
+      "path": "/data/world/td.json",
+      "regions": 23,
+      "cities": 49
+    },
+    {
+      "code": "TF",
+      "name": "French Southern Territories",
+      "path": "/data/world/tf.json",
+      "regions": 5,
+      "cities": 5
+    },
+    {
+      "code": "TG",
+      "name": "Togo",
+      "path": "/data/world/tg.json",
+      "regions": 5,
+      "cities": 22
+    },
+    {
+      "code": "TH",
+      "name": "Thailand",
+      "path": "/data/world/th.json",
+      "regions": 78,
+      "cities": 1241
+    },
+    {
+      "code": "TJ",
+      "name": "Tajikistan",
+      "path": "/data/world/tj.json",
+      "regions": 5,
+      "cities": 71
+    },
+    {
+      "code": "TK",
+      "name": "Tokelau",
+      "path": "/data/world/tk.json",
+      "regions": 0,
+      "cities": 0
+    },
+    {
+      "code": "TL",
+      "name": "Timor-Leste",
+      "path": "/data/world/tl.json",
+      "regions": 13,
+      "cities": 55
+    },
+    {
+      "code": "TM",
+      "name": "Turkmenistan",
+      "path": "/data/world/tm.json",
+      "regions": 6,
+      "cities": 30
+    },
+    {
+      "code": "TN",
+      "name": "Tunisia",
+      "path": "/data/world/tn.json",
+      "regions": 24,
+      "cities": 165
+    },
+    {
+      "code": "TO",
+      "name": "Tonga",
+      "path": "/data/world/to.json",
+      "regions": 5,
+      "cities": 8
+    },
+    {
+      "code": "TR",
+      "name": "Turkey",
+      "path": "/data/world/tr.json",
+      "regions": 81,
+      "cities": 980
+    },
+    {
+      "code": "TT",
+      "name": "Trinidad and Tobago",
+      "path": "/data/world/tt.json",
+      "regions": 17,
+      "cities": 25
+    },
+    {
+      "code": "TV",
+      "name": "Tuvalu",
+      "path": "/data/world/tv.json",
+      "regions": 8,
+      "cities": 9
+    },
+    {
+      "code": "TW",
+      "name": "Taiwan",
+      "path": "/data/world/tw.json",
+      "regions": 22,
+      "cities": 40
+    },
+    {
+      "code": "TZ",
+      "name": "Tanzania",
+      "path": "/data/world/tz.json",
+      "regions": 31,
+      "cities": 303
+    },
+    {
+      "code": "UA",
+      "name": "Ukraine",
+      "path": "/data/world/ua.json",
+      "regions": 27,
+      "cities": 1819
+    },
+    {
+      "code": "UG",
+      "name": "Uganda",
+      "path": "/data/world/ug.json",
+      "regions": 139,
+      "cities": 91
+    },
+    {
+      "code": "UM",
+      "name": "United States Minor Outlying Islands",
+      "path": "/data/world/um.json",
+      "regions": 9,
+      "cities": 0
+    },
+    {
+      "code": "US",
+      "name": "United States",
+      "path": "/data/world/us.json",
+      "regions": 60,
+      "cities": 16731
+    },
+    {
+      "code": "UY",
+      "name": "Uruguay",
+      "path": "/data/world/uy.json",
+      "regions": 19,
+      "cities": 2010
+    },
+    {
+      "code": "UZ",
+      "name": "Uzbekistan",
+      "path": "/data/world/uz.json",
+      "regions": 14,
+      "cities": 135
+    },
+    {
+      "code": "VA",
+      "name": "Vatican City State (Holy See)",
+      "path": "/data/world/va.json",
+      "regions": 0,
+      "cities": 0
+    },
+    {
+      "code": "VC",
+      "name": "Saint Vincent and the Grenadines",
+      "path": "/data/world/vc.json",
+      "regions": 6,
+      "cities": 9
+    },
+    {
+      "code": "VE",
+      "name": "Venezuela",
+      "path": "/data/world/ve.json",
+      "regions": 25,
+      "cities": 136
+    },
+    {
+      "code": "VG",
+      "name": "Virgin Islands (British)",
+      "path": "/data/world/vg.json",
+      "regions": 0,
+      "cities": 0
+    },
+    {
+      "code": "VI",
+      "name": "Virgin Islands (US)",
+      "path": "/data/world/vi.json",
+      "regions": 3,
+      "cities": 20
+    },
+    {
+      "code": "VN",
+      "name": "Vietnam",
+      "path": "/data/world/vn.json",
+      "regions": 34,
+      "cities": 488
+    },
+    {
+      "code": "VU",
+      "name": "Vanuatu",
+      "path": "/data/world/vu.json",
+      "regions": 6,
+      "cities": 7
+    },
+    {
+      "code": "WF",
+      "name": "Wallis and Futuna Islands",
+      "path": "/data/world/wf.json",
+      "regions": 3,
+      "cities": 3
+    },
+    {
+      "code": "WS",
+      "name": "Samoa",
+      "path": "/data/world/ws.json",
+      "regions": 11,
+      "cities": 20
+    },
+    {
+      "code": "XK",
+      "name": "Kosovo",
+      "path": "/data/world/xk.json",
+      "regions": 7,
+      "cities": 59
+    },
+    {
+      "code": "YE",
+      "name": "Yemen",
+      "path": "/data/world/ye.json",
+      "regions": 22,
+      "cities": 339
+    },
+    {
+      "code": "YT",
+      "name": "Mayotte",
+      "path": "/data/world/yt.json",
+      "regions": 17,
+      "cities": 57
+    },
+    {
+      "code": "ZA",
+      "name": "South Africa",
+      "path": "/data/world/za.json",
+      "regions": 9,
+      "cities": 314
+    },
+    {
+      "code": "ZM",
+      "name": "Zambia",
+      "path": "/data/world/zm.json",
+      "regions": 10,
+      "cities": 71
+    },
+    {
+      "code": "ZW",
+      "name": "Zimbabwe",
+      "path": "/data/world/zw.json",
+      "regions": 10,
+      "cities": 109
+    }
+  ]
+}

@@ -995,6 +995,11 @@ main {
   color: #7047ad;
 }
 
+.segment-branch {
+  background: #fff0d6;
+  color: #9a5b16;
+}
+
 .segment-account {
   background: #e8f5c9;
   color: #4a6d15;
@@ -1027,6 +1032,7 @@ main {
 .dot-country { background: var(--green); }
 .dot-check { background: var(--blue); }
 .dot-bank { background: var(--purple); }
+.dot-branch { background: #d98b2b; }
 .dot-account { background: #9bc941; }
 .dot-extra { background: #a8b0ac; }
 
@@ -2312,27 +2318,16 @@ footer > a:hover {
   min-width: 0;
 }
 
-.mini-segmented {
-  display: flex;
-  padding: 3px;
-  border: 1px solid #343a38;
-  border-radius: 7px;
-  background: #151817;
+.country-scope-select {
+  width: 92px;
 }
 
-.mini-segmented button {
-  border: 0;
-  border-radius: 4px;
-  padding: 0 7px;
-  background: transparent;
-  color: #7e8783;
-  font: 650 8px/1 var(--font-geist-mono), monospace;
-  cursor: pointer;
+.country-scope-select select {
+  min-width: 92px;
 }
 
-.mini-segmented button.active {
-  background: #303632;
-  color: white;
+.city-search-input {
+  margin-bottom: 7px;
 }
 
 .scenario-grid {
@@ -2631,6 +2626,11 @@ html[data-theme="dark"] footer {
 
   .country-discovery {
     grid-template-columns: 1fr;
+  }
+
+  .country-scope-select,
+  .country-scope-select select {
+    width: 100%;
   }
 
   .national-structure-grid {

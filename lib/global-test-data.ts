@@ -46,6 +46,7 @@ export type IdentityCountrySpec = {
   emailDomain: string;
   taxLabel: string;
   insuranceLabel: string;
+  familyNameFirst?: boolean;
 };
 
 export type SyntheticIdentity = {
@@ -156,7 +157,7 @@ export const IDENTITY_COUNTRIES: IdentityCountrySpec[] = [
       { name: "München", region: "Bayern", postalCode: "80331", streets: ["Sendlinger Straße", "Leopoldstraße", "Rosenweg"] },
       { name: "Köln", region: "Nordrhein-Westfalen", postalCode: "50667", streets: ["Hohe Straße", "Domstraße", "Rheingasse"] },
     ],
-    phonePrefix: "+49", emailDomain: "example.de", taxLabel: "Steuer-ID", insuranceLabel: "Krankenversicherungsnr.",
+    phonePrefix: "+49", emailDomain: "de.example", taxLabel: "Steuer-ID", insuranceLabel: "Krankenversicherungsnr.",
   },
   {
     code: "FR", name: "法国", flag: "🇫🇷",
@@ -167,7 +168,7 @@ export const IDENTITY_COUNTRIES: IdentityCountrySpec[] = [
       { name: "Lyon", region: "Auvergne-Rhône-Alpes", postalCode: "69001", streets: ["Rue de la République", "Rue Victor-Hugo"] },
       { name: "Marseille", region: "Provence-Alpes-Côte d’Azur", postalCode: "13001", streets: ["La Canebière", "Rue Paradis"] },
     ],
-    phonePrefix: "+33", emailDomain: "example.fr", taxLabel: "Numéro fiscal", insuranceLabel: "NIR de test",
+    phonePrefix: "+33", emailDomain: "fr.example", taxLabel: "Numéro fiscal", insuranceLabel: "NIR de test",
   },
   {
     code: "GB", name: "英国", flag: "🇬🇧",
@@ -178,7 +179,7 @@ export const IDENTITY_COUNTRIES: IdentityCountrySpec[] = [
       { name: "Manchester", region: "England", postalCode: "M1 1AE", streets: ["Deansgate", "Oxford Road"] },
       { name: "Edinburgh", region: "Scotland", postalCode: "EH1 1YZ", streets: ["Princes Street", "George Street"] },
     ],
-    phonePrefix: "+44", emailDomain: "example.co.uk", taxLabel: "NINO test value", insuranceLabel: "NHS test reference",
+    phonePrefix: "+44", emailDomain: "gb.example", taxLabel: "NINO test value", insuranceLabel: "NHS test reference",
   },
   {
     code: "NL", name: "荷兰", flag: "🇳🇱",
@@ -189,7 +190,7 @@ export const IDENTITY_COUNTRIES: IdentityCountrySpec[] = [
       { name: "Rotterdam", region: "Zuid-Holland", postalCode: "3011 AA", streets: ["Coolsingel", "Blaak"] },
       { name: "Utrecht", region: "Utrecht", postalCode: "3511 AA", streets: ["Oudegracht", "Neude"] },
     ],
-    phonePrefix: "+31", emailDomain: "example.nl", taxLabel: "BSN test value", insuranceLabel: "Zorgverzekering testnummer",
+    phonePrefix: "+31", emailDomain: "nl.example", taxLabel: "BSN test value", insuranceLabel: "Zorgverzekering testnummer",
   },
   {
     code: "ES", name: "西班牙", flag: "🇪🇸",
@@ -200,7 +201,7 @@ export const IDENTITY_COUNTRIES: IdentityCountrySpec[] = [
       { name: "Barcelona", region: "Catalunya", postalCode: "08001", streets: ["La Rambla", "Carrer de Mallorca"] },
       { name: "Valencia", region: "Comunitat Valenciana", postalCode: "46001", streets: ["Carrer de Colón", "Carrer de la Pau"] },
     ],
-    phonePrefix: "+34", emailDomain: "example.es", taxLabel: "NIF", insuranceLabel: "Seguridad Social test",
+    phonePrefix: "+34", emailDomain: "es.example", taxLabel: "NIF", insuranceLabel: "Seguridad Social test",
   },
   {
     code: "IT", name: "意大利", flag: "🇮🇹",
@@ -211,7 +212,7 @@ export const IDENTITY_COUNTRIES: IdentityCountrySpec[] = [
       { name: "Milano", region: "Lombardia", postalCode: "20121", streets: ["Via Dante", "Corso Buenos Aires"] },
       { name: "Firenze", region: "Toscana", postalCode: "50122", streets: ["Via dei Calzaiuoli", "Via Roma"] },
     ],
-    phonePrefix: "+39", emailDomain: "example.it", taxLabel: "Codice fiscale test", insuranceLabel: "Tessera sanitaria test",
+    phonePrefix: "+39", emailDomain: "it.example", taxLabel: "Codice fiscale test", insuranceLabel: "Tessera sanitaria test",
   },
   {
     code: "CH", name: "瑞士", flag: "🇨🇭",
@@ -222,7 +223,7 @@ export const IDENTITY_COUNTRIES: IdentityCountrySpec[] = [
       { name: "Genève", region: "Genève", postalCode: "1201", streets: ["Rue du Rhône", "Rue de Lausanne"] },
       { name: "Bern", region: "Bern", postalCode: "3011", streets: ["Marktgasse", "Kramgasse"] },
     ],
-    phonePrefix: "+41", emailDomain: "example.ch", taxLabel: "AHV test value", insuranceLabel: "Krankenkasse testnummer",
+    phonePrefix: "+41", emailDomain: "ch.example", taxLabel: "AHV test value", insuranceLabel: "Krankenkasse testnummer",
   },
   {
     code: "BE", name: "比利时", flag: "🇧🇪",
@@ -233,7 +234,7 @@ export const IDENTITY_COUNTRIES: IdentityCountrySpec[] = [
       { name: "Antwerpen", region: "Vlaanderen", postalCode: "2000", streets: ["Meir", "Nationalestraat"] },
       { name: "Gent", region: "Vlaanderen", postalCode: "9000", streets: ["Veldstraat", "Korenmarkt"] },
     ],
-    phonePrefix: "+32", emailDomain: "example.be", taxLabel: "Numéro national test", insuranceLabel: "Mutualité testnummer",
+    phonePrefix: "+32", emailDomain: "be.example", taxLabel: "Numéro national test", insuranceLabel: "Mutualité testnummer",
   },
   {
     code: "AT", name: "奥地利", flag: "🇦🇹",
@@ -244,7 +245,7 @@ export const IDENTITY_COUNTRIES: IdentityCountrySpec[] = [
       { name: "Salzburg", region: "Salzburg", postalCode: "5020", streets: ["Getreidegasse", "Linzer Gasse"] },
       { name: "Graz", region: "Steiermark", postalCode: "8010", streets: ["Herrengasse", "Sackstraße"] },
     ],
-    phonePrefix: "+43", emailDomain: "example.at", taxLabel: "Steuernummer test", insuranceLabel: "Sozialversicherungsnr. test",
+    phonePrefix: "+43", emailDomain: "at.example", taxLabel: "Steuernummer test", insuranceLabel: "Sozialversicherungsnr. test",
   },
   {
     code: "IE", name: "爱尔兰", flag: "🇮🇪",
@@ -255,7 +256,7 @@ export const IDENTITY_COUNTRIES: IdentityCountrySpec[] = [
       { name: "Cork", region: "Munster", postalCode: "T12", streets: ["Patrick Street", "Oliver Plunkett Street"] },
       { name: "Galway", region: "Connacht", postalCode: "H91", streets: ["Shop Street", "Eyre Square"] },
     ],
-    phonePrefix: "+353", emailDomain: "example.ie", taxLabel: "PPSN test value", insuranceLabel: "Health service test ID",
+    phonePrefix: "+353", emailDomain: "ie.example", taxLabel: "PPSN test value", insuranceLabel: "Health service test ID",
   },
   {
     code: "PL", name: "波兰", flag: "🇵🇱",
@@ -266,7 +267,7 @@ export const IDENTITY_COUNTRIES: IdentityCountrySpec[] = [
       { name: "Kraków", region: "Małopolskie", postalCode: "31-001", streets: ["Floriańska", "Grodzka"] },
       { name: "Wrocław", region: "Dolnośląskie", postalCode: "50-001", streets: ["Świdnicka", "Oławska"] },
     ],
-    phonePrefix: "+48", emailDomain: "example.pl", taxLabel: "PESEL test value", insuranceLabel: "NFZ test reference",
+    phonePrefix: "+48", emailDomain: "pl.example", taxLabel: "PESEL test value", insuranceLabel: "NFZ test reference",
   },
   {
     code: "PT", name: "葡萄牙", flag: "🇵🇹",
@@ -277,7 +278,7 @@ export const IDENTITY_COUNTRIES: IdentityCountrySpec[] = [
       { name: "Porto", region: "Porto", postalCode: "4000-001", streets: ["Rua de Santa Catarina", "Rua das Flores"] },
       { name: "Braga", region: "Braga", postalCode: "4700-001", streets: ["Avenida Central", "Rua do Souto"] },
     ],
-    phonePrefix: "+351", emailDomain: "example.pt", taxLabel: "NIF", insuranceLabel: "SNS test number",
+    phonePrefix: "+351", emailDomain: "pt.example", taxLabel: "NIF", insuranceLabel: "SNS test number",
   },
   {
     code: "NO", name: "挪威", flag: "🇳🇴",
@@ -288,7 +289,7 @@ export const IDENTITY_COUNTRIES: IdentityCountrySpec[] = [
       { name: "Bergen", region: "Vestland", postalCode: "5003", streets: ["Bryggen", "Strandgaten"] },
       { name: "Trondheim", region: "Trøndelag", postalCode: "7010", streets: ["Munkegata", "Olav Tryggvasons gate"] },
     ],
-    phonePrefix: "+47", emailDomain: "example.no", taxLabel: "Fødselsnummer test", insuranceLabel: "Helse test-ID",
+    phonePrefix: "+47", emailDomain: "no.example", taxLabel: "Fødselsnummer test", insuranceLabel: "Helse test-ID",
   },
   {
     code: "FI", name: "芬兰", flag: "🇫🇮",
@@ -299,7 +300,7 @@ export const IDENTITY_COUNTRIES: IdentityCountrySpec[] = [
       { name: "Tampere", region: "Pirkanmaa", postalCode: "33100", streets: ["Hämeenkatu", "Kauppakatu"] },
       { name: "Turku", region: "Varsinais-Suomi", postalCode: "20100", streets: ["Aurakatu", "Yliopistonkatu"] },
     ],
-    phonePrefix: "+358", emailDomain: "example.fi", taxLabel: "Henkilötunnus test", insuranceLabel: "Kela test reference",
+    phonePrefix: "+358", emailDomain: "fi.example", taxLabel: "Henkilötunnus test", insuranceLabel: "Kela test reference",
   },
   {
     code: "LU", name: "卢森堡", flag: "🇱🇺",
@@ -310,7 +311,7 @@ export const IDENTITY_COUNTRIES: IdentityCountrySpec[] = [
       { name: "Esch-sur-Alzette", region: "Esch-sur-Alzette", postalCode: "L-4001", streets: ["Rue de l'Alzette", "Boulevard Kennedy"] },
       { name: "Differdange", region: "Differdange", postalCode: "L-4501", streets: ["Avenue de la Liberté", "Rue Emile Mark"] },
     ],
-    phonePrefix: "+352", emailDomain: "example.lu", taxLabel: "Matricule test", insuranceLabel: "CNS test number",
+    phonePrefix: "+352", emailDomain: "lu.example", taxLabel: "Matricule test", insuranceLabel: "CNS test number",
   },
 ];
 
@@ -341,7 +342,7 @@ export const DEFAULT_SYNTHETIC_IDENTITY: SyntheticIdentity = {
     kycRiskLevel: "low",
   },
   contact: {
-    email: "klara.neumann@example.de",
+    email: "klara.neumann@de.example",
     phone: "+49 151 382 7412",
   },
   address: {
@@ -484,6 +485,42 @@ const GENERIC_LOCALIZATION: Record<
     lastNames: ["Bakker", "De Jong", "De Vries", "Jansen", "Visser"],
     streets: ["Voorbeeldstraat", "Integratielaan", "Testweg"],
   },
+  ar: {
+    maleNames: ["أحمد", "عمر", "يوسف", "علي"],
+    femaleNames: ["فاطمة", "ليان", "مريم", "نور"],
+    lastNames: ["الحسن", "الخطيب", "السيد", "منصور"],
+    streets: ["شارع الاختبار", "طريق المثال", "جادة التكامل"],
+  },
+  hi: {
+    maleNames: ["Aarav", "Arjun", "Kabir", "Vivaan"],
+    femaleNames: ["Aanya", "Anaya", "Diya", "Isha"],
+    lastNames: ["Gupta", "Patel", "Sharma", "Singh"],
+    streets: ["Example Marg", "Integration Road", "Test Nagar"],
+  },
+  ja: {
+    maleNames: ["陽翔", "蓮", "湊", "悠真"],
+    femaleNames: ["陽葵", "結菜", "凛", "芽依"],
+    lastNames: ["伊藤", "佐藤", "鈴木", "高橋"],
+    streets: ["テスト通り", "統合通り", "サンプル街道"],
+  },
+  ko: {
+    maleNames: ["도윤", "민준", "서준", "예준"],
+    femaleNames: ["서연", "서윤", "지우", "하윤"],
+    lastNames: ["김", "박", "이", "최"],
+    streets: ["테스트로", "통합길", "예시대로"],
+  },
+  ru: {
+    maleNames: ["Алексей", "Иван", "Максим", "Михаил"],
+    femaleNames: ["Анна", "Мария", "Полина", "София"],
+    lastNames: ["Иванов", "Кузнецов", "Петров", "Смирнов"],
+    streets: ["Тестовая улица", "Проспект Интеграции", "Улица Пример"],
+  },
+  zh: {
+    maleNames: ["浩然", "俊杰", "明宇", "子轩"],
+    femaleNames: ["佳怡", "静雯", "诗涵", "雨桐"],
+    lastNames: ["李", "刘", "王", "张"],
+    streets: ["测试路", "集成大道", "示例街"],
+  },
 };
 
 function genericIdentityCountry(spec: CountryCatalogSpec): IdentityCountrySpec {
@@ -520,6 +557,7 @@ function genericIdentityCountry(spec: CountryCatalogSpec): IdentityCountrySpec {
     emailDomain: spec.emailDomain,
     taxLabel: spec.taxLabel,
     insuranceLabel: spec.insuranceLabel,
+    familyNameFirst: ["ja", "ko", "zh"].includes(spec.language),
   };
 }
 
@@ -570,11 +608,12 @@ function randomLetters(length: number, randomInt: RandomInt) {
 }
 
 function slugifyName(value: string) {
-  return value
+  const ascii = value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-zA-Z]/g, "")
     .toLowerCase();
+  return ascii || `u${hashSeed(value).toString(36)}`;
 }
 
 function generateBirthDate(age: number, randomInt: RandomInt) {
@@ -684,6 +723,7 @@ export function generateSyntheticIdentity({
   lastNameOverride = "",
   streetOverride = "",
   postalCodeOverride = "",
+  currencyOverride = "",
   scenario = "complete",
   seed = "",
   index = 0,
@@ -699,6 +739,7 @@ export function generateSyntheticIdentity({
   lastNameOverride?: string;
   streetOverride?: string;
   postalCodeOverride?: string;
+  currencyOverride?: string;
   scenario?: IdentityScenario;
   seed?: string;
   index?: number;
@@ -749,6 +790,9 @@ export function generateSyntheticIdentity({
     ];
   const timezone = city.timezone ?? defaultTimezone;
   const username = `${slugifyName(firstName)}.${slugifyName(lastName)}`;
+  const fullName = spec.familyNameFirst
+    ? `${lastName} ${firstName}`
+    : `${firstName} ${lastName}`;
   const cleanBankIban = cleanIban(iban);
   const resolvedBanking: NationalBankingIdentity = bankingIdentity ?? {
     scheme: "IBAN",
@@ -761,8 +805,14 @@ export function generateSyntheticIdentity({
     iban: iban || null,
     validation: "format-only",
   };
-  const currency =
-    scenario === "sepa" ? "EUR" : catalogSpec?.currency ?? registrySpec?.currency ?? "EUR";
+  const bankingCurrency =
+    currencyOverride ||
+    catalogSpec?.currency ||
+    registrySpec?.currency ||
+    "EUR";
+  const paymentScheme = registrySpec?.sepa ? "SCT" : "LOCAL";
+  const paymentCurrency =
+    paymentScheme === "SCT" ? "EUR" : bankingCurrency;
   const salary = 32000 + randomInt(88001);
   const creditorReference = generateCreditorReference(randomInt);
   const stableId = seed
@@ -781,7 +831,7 @@ export function generateSyntheticIdentity({
     personal: {
       firstName,
       lastName,
-      fullName: `${firstName} ${lastName}`,
+      fullName,
       gender,
       age,
       birthDate,
@@ -823,7 +873,7 @@ export function generateSyntheticIdentity({
       paymentIdentifier: resolvedBanking,
       accountNumber: resolvedBanking.accountNumber,
       bic: `TSTB${spec.code}XXXXX`,
-      currency,
+      currency: bankingCurrency,
       accountType: pick(["checking", "savings"], randomInt),
       card: {
         label: "Sandbox card",
@@ -845,9 +895,9 @@ export function generateSyntheticIdentity({
       registrationNumber: `REG-${spec.code}-${randomDigits(8, randomInt)}`,
     },
     payment: {
-      scheme: registrySpec?.sepa ? "SCT" : "LOCAL",
+      scheme: paymentScheme,
       amount: Number((10 + randomInt(499001) / 100).toFixed(2)),
-      currency,
+      currency: paymentCurrency,
       endToEndId: `E2E-${spec.code}-${randomDigits(10, randomInt)}`,
       creditorReference,
       purposeCode: pick(PURPOSE_CODES, randomInt),

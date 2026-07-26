@@ -44,17 +44,20 @@ test("server-renders the complete IBAN tool", async () => {
 });
 
 test("ships portable deployment configuration and social metadata", async () => {
-  const [layout, page, globalData, germanData, vercelConfig, wranglerConfig, packageJson] = await Promise.all([
+  const [layout, page, globalData, germanData, serviceWorker, vercelConfig, wranglerConfig, packageJson] = await Promise.all([
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../lib/global-test-data.ts", import.meta.url), "utf8"),
     readFile(new URL("../lib/german-test-data.ts", import.meta.url), "utf8"),
+    readFile(new URL("../public/sw.js", import.meta.url), "utf8"),
     readFile(new URL("../vercel.json", import.meta.url), "utf8"),
     readFile(new URL("../wrangler.jsonc", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);
 
   assert.match(layout, /og\.png/);
+  assert.match(layout, /export const metadata/);
+  assert.doesNotMatch(layout, /next\/headers|generateMetadata/);
   assert.match(vercelConfig, /"framework": "nextjs"/);
   assert.match(wranglerConfig, /"binding": "ASSETS"/);
   assert.match(packageJson, /"build:cloudflare"/);
@@ -63,4 +66,7 @@ test("ships portable deployment configuration and social metadata", async () => 
   assert.match(globalData, /generateSyntheticIdentity/);
   assert.match(globalData, /IDENTITY_COUNTRIES/);
   assert.match(germanData, /calculateGermanTaxIdCheckDigit/);
+  assert.doesNotMatch(serviceWorker, /await cache\.put/);
+  assert.match(serviceWorker, /event\.request\.mode === "navigate"/);
+  assert.match(serviceWorker, /Response\.error\(\)/);
 });

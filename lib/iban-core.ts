@@ -1,12 +1,43 @@
 export type TemplateChar = "n" | "a" | "c";
-export type IbanCaseMode =
-  | "valid"
-  | "bad-checksum"
-  | "wrong-length"
-  | "illegal-character"
-  | "bad-bban"
-  | "lowercase"
-  | "hyphenated";
+export const IBAN_CASE_MODES = [
+  "valid",
+  "bad-checksum",
+  "wrong-length",
+  "illegal-character",
+  "bad-bban",
+  "lowercase",
+  "hyphenated",
+] as const;
+export type IbanCaseMode = (typeof IBAN_CASE_MODES)[number];
+
+export const NON_IBAN_CASE_MODES: readonly IbanCaseMode[] = [
+  "valid",
+  "bad-checksum",
+  "wrong-length",
+  "illegal-character",
+  "bad-bban",
+];
+
+export function isIbanCaseMode(value: unknown): value is IbanCaseMode {
+  return (
+    typeof value === "string" &&
+    (IBAN_CASE_MODES as readonly string[]).includes(value)
+  );
+}
+
+export function supportedCaseModes(hasIban: boolean) {
+  return hasIban ? IBAN_CASE_MODES : NON_IBAN_CASE_MODES;
+}
+
+export function isSupportedCaseMode(
+  value: unknown,
+  hasIban: boolean,
+): value is IbanCaseMode {
+  return (
+    isIbanCaseMode(value) &&
+    (supportedCaseModes(hasIban) as readonly string[]).includes(value)
+  );
+}
 
 export type IbanCountrySpec = {
   code: string;
@@ -17,6 +48,8 @@ export type IbanCountrySpec = {
   structure: string;
   bankCodeStart: number;
   bankCodeLen: number;
+  branchCodeStart: number | null;
+  branchCodeLen: number;
   accountStart: number;
   accountLen: number;
   bankLabel: string;
@@ -40,13 +73,48 @@ type RawSpec = readonly [
 
 const REGISTRY_RELEASE = "SWIFT IBAN Registry · Release 102 · June 2026";
 
+export const IBAN_BRANCH_LAYOUTS = {
+  AD: { bankStart: 0, bankLen: 4, branchStart: 4, branchLen: 4, page: 8 },
+  AL: { bankStart: 0, bankLen: 3, branchStart: 3, branchLen: 5, page: 10 },
+  BA: { bankStart: 0, bankLen: 3, branchStart: 3, branchLen: 3, page: 13 },
+  BG: { bankStart: 0, bankLen: 4, branchStart: 4, branchLen: 4, page: 15 },
+  BI: { bankStart: 0, bankLen: 5, branchStart: 5, branchLen: 5, page: 17 },
+  BR: { bankStart: 0, bankLen: 8, branchStart: 8, branchLen: 5, page: 18 },
+  CY: { bankStart: 0, bankLen: 3, branchStart: 3, branchLen: 5, page: 22 },
+  DJ: { bankStart: 0, bankLen: 5, branchStart: 5, branchLen: 5, page: 25 },
+  EG: { bankStart: 0, bankLen: 4, branchStart: 4, branchLen: 4, page: 29 },
+  ES: { bankStart: 0, bankLen: 4, branchStart: 4, branchLen: 4, page: 30 },
+  GB: { bankStart: 0, bankLen: 4, branchStart: 4, branchLen: 6, page: 35 },
+  GR: { bankStart: 0, bankLen: 3, branchStart: 3, branchLen: 4, page: 39 },
+  HU: { bankStart: 0, bankLen: 3, branchStart: 3, branchLen: 4, page: 43 },
+  IE: { bankStart: 0, bankLen: 4, branchStart: 4, branchLen: 6, page: 44 },
+  IL: { bankStart: 0, bankLen: 3, branchStart: 3, branchLen: 3, page: 45 },
+  IQ: { bankStart: 0, bankLen: 4, branchStart: 4, branchLen: 3, page: 46 },
+  IS: { bankStart: 0, bankLen: 2, branchStart: 2, branchLen: 2, page: 47 },
+  IT: { bankStart: 1, bankLen: 5, branchStart: 6, branchLen: 5, page: 48 },
+  JO: { bankStart: 0, bankLen: 4, branchStart: 4, branchLen: 4, page: 49 },
+  LY: { bankStart: 0, bankLen: 3, branchStart: 3, branchLen: 3, page: 58 },
+  MC: { bankStart: 0, bankLen: 5, branchStart: 5, branchLen: 5, page: 59 },
+  MR: { bankStart: 0, bankLen: 5, branchStart: 5, branchLen: 5, page: 64 },
+  MT: { bankStart: 0, bankLen: 4, branchStart: 4, branchLen: 5, page: 65 },
+  MU: { bankStart: 0, bankLen: 6, branchStart: 6, branchLen: 2, page: 66 },
+  RU: { bankStart: 0, bankLen: 9, branchStart: 9, branchLen: 5, page: 78 },
+  SC: { bankStart: 0, bankLen: 6, branchStart: 6, branchLen: 2, page: 80 },
+  SM: { bankStart: 1, bankLen: 5, branchStart: 6, branchLen: 5, page: 85 },
+  SO: { bankStart: 0, bankLen: 4, branchStart: 4, branchLen: 3, page: 86 },
+  ST: { bankStart: 0, bankLen: 4, branchStart: 4, branchLen: 4, page: 87 },
+  TN: { bankStart: 0, bankLen: 2, branchStart: 2, branchLen: 3, page: 90 },
+  XK: { bankStart: 0, bankLen: 2, branchStart: 2, branchLen: 2, page: 95 },
+  YE: { bankStart: 0, bankLen: 4, branchStart: 4, branchLen: 4, page: 96 },
+} as const;
+
 const RAW_SPECS: RawSpec[] = [
-  ["AD", "🇦🇩", "Andorra", 24, "8n12c", 4, 8, 12, true, "EUR"],
+  ["AD", "🇦🇩", "Andorra", 24, "4n4n12c", 4, 8, 12, true, "EUR"],
   ["AE", "🇦🇪", "United Arab Emirates", 23, "3n16n", 3, 3, 16, false, "AED"],
-  ["AL", "🇦🇱", "Albania", 28, "8n16c", 8, 8, 16, true, "ALL"],
+  ["AL", "🇦🇱", "Albania", 28, "8n16c", 3, 8, 16, true, "ALL"],
   ["AT", "🇦🇹", "奥地利", 20, "5n11n", 5, 5, 11, true, "EUR"],
   ["AZ", "🇦🇿", "Azerbaijan", 28, "4a20c", 4, 4, 20, false, "AZN"],
-  ["BA", "🇧🇦", "Bosnia and Herzegovina", 20, "6n8n2n", 6, 6, 8, false, "BAM"],
+  ["BA", "🇧🇦", "Bosnia and Herzegovina", 20, "3n3n8n2n", 3, 6, 8, false, "BAM"],
   ["BE", "🇧🇪", "比利时", 16, "3n7n2n", 3, 3, 7, true, "EUR"],
   ["BG", "🇧🇬", "Bulgaria", 22, "4a4n2n8c", 4, 10, 8, true, "EUR"],
   ["BH", "🇧🇭", "Bahrain", 22, "4a14c", 4, 4, 14, false, "BHD"],
@@ -61,26 +129,26 @@ const RAW_SPECS: RawSpec[] = [
   ["DJ", "🇩🇯", "Djibouti", 27, "5n5n11n2n", 5, 10, 11, false, "DJF"],
   ["DK", "🇩🇰", "Denmark", 18, "4n9n1n", 4, 4, 10, true, "DKK"],
   ["DO", "🇩🇴", "Dominican Republic", 28, "4a20n", 4, 4, 20, false, "DOP"],
-  ["DZ", "🇩🇿", "Algeria", 24, "20n", 3, 10, 10, false, "DZD"],
-  ["EE", "🇪🇪", "Estonia", 20, "4n11n1n", 4, 4, 12, true, "EUR"],
+  ["EE", "🇪🇪", "Estonia", 20, "2n14n", 2, 2, 14, true, "EUR"],
   ["EG", "🇪🇬", "Egypt", 29, "4n4n17n", 4, 8, 17, false, "EGP"],
   ["ES", "🇪🇸", "西班牙", 24, "4n4n2n10n", 4, 10, 10, true, "EUR"],
-  ["FI", "🇫🇮", "芬兰", 18, "6n7n1n", 6, 6, 8, true, "EUR"],
+  ["FI", "🇫🇮", "芬兰", 18, "3n11n", 3, 3, 11, true, "EUR"],
   ["FK", "🇫🇰", "Falkland Islands", 18, "2a12n", 2, 2, 12, false, "FKP"],
-  ["FO", "🇫🇴", "Faroe Islands", 18, "4n9n1n", 4, 4, 10, true, "DKK"],
+  ["FO", "🇫🇴", "Faroe Islands", 18, "4n9n1n", 4, 4, 10, false, "DKK"],
   ["FR", "🇫🇷", "法国", 27, "5n5n11c2n", 5, 10, 11, true, "EUR"],
   ["GB", "🇬🇧", "英国", 22, "4a6n8n", 4, 10, 8, true, "GBP"],
   ["GE", "🇬🇪", "Georgia", 22, "2a16n", 2, 2, 16, false, "GEL"],
   ["GI", "🇬🇮", "Gibraltar", 23, "4a15c", 4, 4, 15, true, "GIP"],
-  ["GL", "🇬🇱", "Greenland", 18, "4n9n1n", 4, 4, 10, true, "DKK"],
+  ["GL", "🇬🇱", "Greenland", 18, "4n9n1n", 4, 4, 10, false, "DKK"],
   ["GR", "🇬🇷", "Greece", 27, "3n4n16c", 3, 7, 16, true, "EUR"],
   ["GT", "🇬🇹", "Guatemala", 28, "4c20c", 4, 4, 20, false, "GTQ"],
+  ["HN", "🇭🇳", "Honduras", 28, "4a20n", 4, 4, 20, false, "HNL"],
   ["HR", "🇭🇷", "Croatia", 21, "7n10n", 7, 7, 10, true, "EUR"],
-  ["HU", "🇭🇺", "Hungary", 28, "7n1n15n1n", 7, 8, 16, true, "HUF"],
+  ["HU", "🇭🇺", "Hungary", 28, "3n4n1n15n1n", 3, 8, 15, true, "HUF"],
   ["IE", "🇮🇪", "爱尔兰", 22, "4a6n8n", 4, 10, 8, true, "EUR"],
   ["IL", "🇮🇱", "Israel", 23, "3n3n13n", 3, 6, 13, false, "ILS"],
   ["IQ", "🇮🇶", "Iraq", 23, "4a3n12n", 4, 7, 12, false, "IQD"],
-  ["IS", "🇮🇸", "Iceland", 26, "4n2n6n10n", 4, 12, 10, true, "ISK"],
+  ["IS", "🇮🇸", "Iceland", 26, "4n2n6n10n", 2, 12, 10, true, "ISK"],
   ["IT", "🇮🇹", "意大利", 27, "1a5n5n12c", 5, 11, 12, true, "EUR"],
   ["JO", "🇯🇴", "Jordan", 30, "4a4n18c", 4, 8, 18, false, "JOD"],
   ["KW", "🇰🇼", "Kuwait", 30, "4a22c", 4, 4, 22, false, "KWD"],
@@ -99,36 +167,36 @@ const RAW_SPECS: RawSpec[] = [
   ["MN", "🇲🇳", "Mongolia", 20, "4n12n", 4, 4, 12, false, "MNT"],
   ["MR", "🇲🇷", "Mauritania", 27, "5n5n11n2n", 5, 10, 11, false, "MRU"],
   ["MT", "🇲🇹", "Malta", 31, "4a5n18c", 4, 9, 18, true, "EUR"],
-  ["MU", "🇲🇺", "Mauritius", 30, "4a4n15n3a", 4, 8, 15, false, "MUR"],
+  ["MU", "🇲🇺", "Mauritius", 30, "4a4n15n3a", 6, 8, 15, false, "MUR"],
   ["NI", "🇳🇮", "Nicaragua", 28, "4a20n", 4, 4, 20, false, "NIO"],
   ["NL", "🇳🇱", "荷兰", 18, "4a10n", 4, 4, 10, true, "EUR"],
   ["NO", "🇳🇴", "挪威", 15, "4n6n1n", 4, 4, 7, true, "NOK"],
   ["OM", "🇴🇲", "Oman", 23, "3n16c", 3, 3, 16, false, "OMR"],
   ["PK", "🇵🇰", "Pakistan", 24, "4a16c", 4, 4, 16, false, "PKR"],
   ["PL", "🇵🇱", "波兰", 28, "8n16n", 8, 8, 16, true, "PLN"],
-  ["PS", "🇵🇸", "Palestine", 29, "4a21c", 4, 4, 21, false, "ILS"],
-  ["PT", "🇵🇹", "葡萄牙", 25, "8n2n11n", 4, 10, 11, true, "EUR"],
+  ["PS", "🇵🇸", "Palestine", 29, "4a21c", 4, 4, 21, false, "XXX"],
+  ["PT", "🇵🇹", "葡萄牙", 25, "4n4n11n2n", 4, 8, 11, true, "EUR"],
   ["QA", "🇶🇦", "Qatar", 29, "4a21c", 4, 4, 21, false, "QAR"],
   ["RO", "🇷🇴", "Romania", 24, "4a16c", 4, 4, 16, true, "RON"],
   ["RS", "🇷🇸", "Serbia", 22, "3n13n2n", 3, 3, 13, true, "RSD"],
   ["RU", "🇷🇺", "Russia", 33, "9n5n15c", 9, 14, 15, false, "RUB"],
   ["SA", "🇸🇦", "Saudi Arabia", 24, "2n18c", 2, 2, 18, false, "SAR"],
-  ["SC", "🇸🇨", "Seychelles", 31, "4a4n16n3a", 4, 8, 16, false, "SCR"],
+  ["SC", "🇸🇨", "Seychelles", 31, "4a4n16n3a", 6, 8, 16, false, "SCR"],
   ["SD", "🇸🇩", "Sudan", 18, "14n", 2, 2, 12, false, "SDG"],
   ["SE", "🇸🇪", "Sweden", 24, "3n16n1n", 3, 3, 17, true, "SEK"],
   ["SI", "🇸🇮", "Slovenia", 19, "5n8n2n", 5, 5, 8, true, "EUR"],
   ["SK", "🇸🇰", "Slovakia", 24, "4n6n10n", 4, 10, 10, true, "EUR"],
   ["SM", "🇸🇲", "San Marino", 27, "1a5n5n12c", 5, 11, 12, true, "EUR"],
   ["SO", "🇸🇴", "Somalia", 23, "4n3n12n", 4, 7, 12, false, "SOS"],
-  ["ST", "🇸🇹", "São Tomé and Príncipe", 25, "8n11n2n", 8, 8, 13, false, "STN"],
+  ["ST", "🇸🇹", "São Tomé and Príncipe", 25, "4n4n11n2n", 4, 8, 11, false, "STN"],
   ["SV", "🇸🇻", "El Salvador", 28, "4a20n", 4, 4, 20, false, "USD"],
   ["TL", "🇹🇱", "Timor-Leste", 23, "3n14n2n", 3, 3, 14, false, "USD"],
-  ["TN", "🇹🇳", "Tunisia", 24, "2n3n13n2n", 5, 5, 13, false, "TND"],
+  ["TN", "🇹🇳", "Tunisia", 24, "2n3n13n2n", 2, 5, 13, false, "TND"],
   ["TR", "🇹🇷", "Türkiye", 26, "5n1n16c", 5, 6, 16, false, "TRY"],
   ["UA", "🇺🇦", "Ukraine", 29, "6n19c", 6, 6, 19, false, "UAH"],
   ["VA", "🇻🇦", "Vatican City", 22, "3n15n", 3, 3, 15, true, "EUR"],
   ["VG", "🇻🇬", "British Virgin Islands", 24, "4a16n", 4, 4, 16, false, "USD"],
-  ["XK", "🇽🇰", "Kosovo", 20, "4n10n2n", 4, 4, 12, true, "EUR"],
+  ["XK", "🇽🇰", "Kosovo", 20, "4n10n2n", 2, 4, 10, false, "EUR"],
   ["YE", "🇾🇪", "Yemen", 30, "4a4n18c", 4, 8, 18, false, "YER"],
 ];
 
@@ -151,22 +219,29 @@ export const IBAN_COUNTRIES: IbanCountrySpec[] = RAW_SPECS.map(
     accountLen,
     sepa,
     currency,
-  ]) => ({
-    code,
-    flag,
-    name,
-    length,
-    structure,
-    bbanTemplate: expandStructure(structure),
-    bankCodeStart: code === "IT" || code === "SM" ? 1 : 0,
-    bankCodeLen,
-    accountStart,
-    accountLen,
-    bankLabel: "Bank / Institution Code",
-    sepa,
-    currency,
-    registryRelease: REGISTRY_RELEASE,
-  }),
+  ]) => {
+    const branchLayout =
+      IBAN_BRANCH_LAYOUTS[code as keyof typeof IBAN_BRANCH_LAYOUTS];
+    return {
+      code,
+      flag,
+      name,
+      length,
+      structure,
+      bbanTemplate: expandStructure(structure),
+      bankCodeStart:
+        branchLayout?.bankStart ?? (code === "IT" || code === "SM" ? 1 : 0),
+      bankCodeLen: branchLayout?.bankLen ?? bankCodeLen,
+      branchCodeStart: branchLayout?.branchStart ?? null,
+      branchCodeLen: branchLayout?.branchLen ?? 0,
+      accountStart,
+      accountLen,
+      bankLabel: "Bank / Institution Code",
+      sepa,
+      currency,
+      registryRelease: REGISTRY_RELEASE,
+    };
+  },
 );
 
 export const IBAN_COUNTRY_MAP = new Map(

@@ -25,7 +25,7 @@ test("provides localized complete identity data for every supported IBAN country
     assert.equal(profile.personal.age, 32);
     assert.equal(profile.address.city, city.name);
     assert.equal(profile.banking.iban, iban);
-    assert.match(profile.contact.email, /@example\./);
+    assert.match(profile.contact.email, /@[a-z]{2}\.example$/);
     assert.match(profile.government.insuranceNumber, /^(?:[A-Z]\d{9}|TEST-[A-Z]{2}-\d{8})$/);
     assert.match(profile.banking.card.number, /^(?:4|5)/);
   }
@@ -81,4 +81,24 @@ test("applies exact identity and address overrides", () => {
   assert.equal(profile.address.street, "Automation Lane");
   assert.equal(profile.address.postalCode, "9999 ZZ");
   assert.match(profile.contact.email, /^test\.runner@/);
+});
+
+test("keeps account currency separate from euro-only SCT payments", () => {
+  const british = generateSyntheticIdentity({
+    countryCode: "GB",
+    currencyOverride: "GBP",
+    seed: "gb-sct-currency",
+  });
+  const panamanian = generateSyntheticIdentity({
+    countryCode: "PA",
+    currencyOverride: "USD",
+    seed: "pa-local-currency",
+  });
+
+  assert.equal(british.banking.currency, "GBP");
+  assert.equal(british.payment.scheme, "SCT");
+  assert.equal(british.payment.currency, "EUR");
+  assert.equal(panamanian.banking.currency, "USD");
+  assert.equal(panamanian.payment.scheme, "LOCAL");
+  assert.equal(panamanian.payment.currency, "USD");
 });

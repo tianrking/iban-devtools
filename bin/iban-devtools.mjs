@@ -1,16 +1,20 @@
 #!/usr/bin/env -S node --experimental-strip-types
 
+import { readFile } from "node:fs/promises";
 import {
   createRandomInt,
   generateSyntheticIdentity,
 } from "../lib/global-test-data.ts";
 import {
+  isSupportedCaseMode,
+  supportedCaseModes,
   validateIban,
 } from "../lib/iban-core.ts";
 import {
   COUNTRY_CATALOG,
   COUNTRY_CATALOG_MAP,
 } from "../lib/country-catalog.ts";
+import { selectGeoCityOrFixture } from "../lib/geo-data.ts";
 import { generateNationalBanking } from "../lib/national-banking.ts";
 import { exportProfiles } from "../lib/exporters.ts";
 
@@ -35,12 +39,21 @@ function fail(message) {
   process.exitCode = 1;
 }
 
+async function loadCountryGeo(country) {
+  try {
+    const source = new URL(`../public${country.geoDataPath}`, import.meta.url);
+    return JSON.parse(await readFile(source, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
 const args = readArgs(rawArgs);
 
 if (command === "countries") {
   process.stdout.write(
     `${COUNTRY_CATALOG.map((country) =>
-      `${country.code}\t${country.name}\t${country.payment.scheme}\t${country.currency}\t${country.continent}`,
+      `${country.code}\t${country.name}\t${country.payment.scheme}\t${country.currency}\t${country.region}\t${country.subregion}`,
     ).join("\n")}\n`,
   );
 } else if (command === "validate") {
@@ -58,33 +71,68 @@ if (command === "countries") {
   if (!country) {
     fail(`Unsupported country: ${countryCode}`);
   } else {
-    const count = Math.min(1000, Math.max(1, Number(args.count ?? 1)));
-    const seed = String(args.seed ?? "");
-    const caseMode = String(args.case ?? "valid");
-    const scenario = String(args.scenario ?? "complete");
-    const profiles = Array.from({ length: count }, (_, index) => {
-      const bankingIdentity = generateNationalBanking(
-        country,
-        createRandomInt(seed ? `${seed}:iban:${index}` : undefined),
-        { caseMode },
+    const currency = String(args.currency ?? country.currency).toUpperCase();
+    if (!country.currencies.includes(currency)) {
+      fail(
+        `Unsupported currency for ${countryCode}: ${currency}. Supported: ${country.currencies.join(", ")}`,
       );
-      return generateSyntheticIdentity({
-        countryCode,
-        iban: bankingIdentity.iban ?? "",
-        bankingIdentity,
-        scenario,
-        seed,
-        index,
-      });
-    });
-    const format = String(args.format ?? "json");
-    process.stdout.write(`${exportProfiles(profiles, format)}\n`);
+    } else {
+      const geoData = await loadCountryGeo(country);
+      const count = Math.min(1000, Math.max(1, Number(args.count ?? 1)));
+      const seed = String(args.seed ?? "");
+      const caseMode = String(args.case ?? "valid");
+      const scenario = String(args.scenario ?? "complete");
+      const regionChoice = String(args.region ?? "random");
+      const cityChoice = String(args.city ?? "random");
+      if (!isSupportedCaseMode(caseMode, Boolean(country.ibanSpec))) {
+        fail(
+          `Unsupported case mode for ${countryCode}: ${caseMode}. Supported: ${supportedCaseModes(Boolean(country.ibanSpec)).join(", ")}`,
+        );
+      } else {
+        const profiles = Array.from({ length: count }, (_, index) => {
+          const bankingIdentity = generateNationalBanking(
+            country,
+            createRandomInt(seed ? `${seed}:iban:${index}` : undefined),
+            { caseMode },
+          );
+          const geoCity = geoData
+            ? selectGeoCityOrFixture(
+                geoData,
+                regionChoice,
+                cityChoice,
+                createRandomInt(seed ? `${seed}:city:${index}` : undefined),
+              )
+            : undefined;
+          const explicitCity =
+            !geoCity && args.city && args.region
+              ? {
+                  name: String(args.city),
+                  region: String(args.region),
+                  timezone: String(args.timezone ?? country.timezone),
+                }
+              : undefined;
+          return generateSyntheticIdentity({
+            countryCode,
+            iban: bankingIdentity.iban ?? "",
+            bankingIdentity,
+            cityName: geoCity || explicitCity ? "random" : cityChoice,
+            cityOverride: geoCity ?? explicitCity,
+            currencyOverride: currency,
+            scenario,
+            seed,
+            index,
+          });
+        });
+        const format = String(args.format ?? "json");
+        process.stdout.write(`${exportProfiles(profiles, format)}\n`);
+      }
+    }
   }
 } else {
   fail(`Unknown command: ${command}
 
 Commands:
-  generate --country DE --count 10 --seed qa-01 --scenario kyc --format json
+  generate --country DE --region Berlin --city Berlin --currency EUR --count 10 --seed qa-01 --scenario kyc --format json
   validate DE89370400440532013000
   countries`);
 }
