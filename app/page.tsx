@@ -216,6 +216,7 @@ export default function Home() {
     () => validateIban(activeProfile.banking.iban),
     [activeProfile.banking.iban],
   );
+  const selectedExportMetadata = exportFileMetadata(exportFormat);
   const visibleProfiles = profiles.slice(batchPage * 25, batchPage * 25 + 25);
 
   useEffect(() => {
@@ -1138,15 +1139,59 @@ export default function Home() {
                 ) : (
                   <>
                     <div className="batch-toolbar identity-batch-toolbar">
-                      <p><strong>{profiles.length}</strong> 条完整身份 <span>IBAN 全部通过 MOD-97</span></p>
+                      <p><strong>{profiles.length}</strong> 条完整身份 <span>当前仅预览第 {batchPage + 1} 页，导出始终包含全部数据</span></p>
                       <div>
                         <button onClick={() => copyText(JSON.stringify(profiles, null, 2), "全部身份 JSON 已复制")}>复制全部</button>
-                        <select aria-label="批量导出格式" value={exportFormat} onChange={(event) => setExportFormat(event.target.value as ExportFormat)}>
-                          {EXPORT_FORMATS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-                        </select>
-                        <button onClick={() => exportData()}>导出 ↓</button>
                       </div>
                     </div>
+                    <section className="batch-export-center" aria-labelledby="batch-export-title">
+                      <div className="batch-export-heading">
+                        <div>
+                          <span>EXPORT ALL {profiles.length} IDENTITIES</span>
+                          <h3 id="batch-export-title">批量导出中心</h3>
+                          <p>导出完整嵌套身份、KYC、地址、银行、企业、薪资与支付字段，不受 25 条分页预览限制。</p>
+                        </div>
+                        <strong>{EXPORT_FORMATS.length} FORMATS</strong>
+                      </div>
+
+                      <div className="quick-export-grid" aria-label="常用批量导出格式">
+                        {(["json", "csv", "ndjson"] as const).map((format) => {
+                          const metadata = exportFileMetadata(format);
+                          return (
+                            <button type="button" key={format} onClick={() => exportData(format)}>
+                              <span>{metadata.label}</span>
+                              <small>{format === "json" ? "完整嵌套" : format === "csv" ? "完整扁平字段" : "每行一条"}</small>
+                              <b>下载全部 {profiles.length} 条 ↓</b>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="advanced-export-row">
+                        <label htmlFor="batch-export-format">
+                          <span>更多开发者格式</span>
+                          <small>{selectedExportMetadata.description}</small>
+                        </label>
+                        <select
+                          id="batch-export-format"
+                          value={exportFormat}
+                          onChange={(event) => setExportFormat(event.target.value as ExportFormat)}
+                        >
+                          {EXPORT_FORMATS.map((item) => (
+                            <option key={item.value} value={item.value}>{item.label}</option>
+                          ))}
+                        </select>
+                        <button type="button" onClick={() => exportData()}>
+                          导出全部 {profiles.length} 条
+                        </button>
+                      </div>
+
+                      <div className="export-coverage" role="list" aria-label="批量导出数据覆盖">
+                        {["人物与证件", "地址与联系", "税务与保险", "银行与卡片", "企业与薪资", "支付与 SEPA"].map((label) => (
+                          <span role="listitem" key={label}><i /> {label}</span>
+                        ))}
+                      </div>
+                    </section>
                     <div className="identity-batch-list">
                       {visibleProfiles.map((profile, index) => (
                         <article className="identity-batch-row" key={profile.id}>

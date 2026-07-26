@@ -22,7 +22,7 @@
 - 支付字段包含 SCT/LOCAL、End-to-End ID、RF Creditor Reference、Purpose Code、VoP 与结构化地址
 - 完整身份支持 1–1000 条批量生成，25 条分页预览
 - 内置 KYC、支付、薪资、电商、SEPA、API 边界和数据库种子场景
-- 导出 JSON、CSV、TypeScript、Zod、JSON Schema、Playwright、Cypress、Postman、`.env`、SQL 与 Python
+- 整批导出 JSON、NDJSON、完整字段 CSV、TypeScript、Zod、JSON Schema、Playwright、Cypress、Postman、`.env`、SQL 与 Python
 - 跟随当前国家的上下文场景预设、配置恢复/重置、可复现 URL、深色模式与 `⌘K` 命令面板
 - 移动端固定生成操作栏，长表单中无需反复滚动寻找生成按钮
 - 支持离线安装的 PWA；浏览器工作台不上传输入，仅在本地保存最后一次配置
@@ -110,7 +110,7 @@ app/
 └── layout.tsx       # 页面元数据、PWA 与社交分享
 lib/
 ├── iban-core.ts        # 89 国注册表、MOD-97、生成与分层校验
-├── exporters.ts        # 11 种开发者导出格式
+├── exporters.ts        # 12 种完整批量开发者导出格式
 ├── global-test-data.ts # 完整测试身份、KYC 与支付数据
 └── german-test-data.ts # 德国 Steuer-ID 校验算法
 bin/

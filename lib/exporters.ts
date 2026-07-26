@@ -2,6 +2,7 @@ import type { SyntheticIdentity } from "./global-test-data.ts";
 
 export type ExportFormat =
   | "json"
+  | "ndjson"
   | "csv"
   | "typescript"
   | "zod"
@@ -18,18 +19,20 @@ export const EXPORT_FORMATS: Array<{
   label: string;
   extension: string;
   mime: string;
+  description: string;
 }> = [
-  { value: "json", label: "JSON", extension: "json", mime: "application/json" },
-  { value: "csv", label: "CSV", extension: "csv", mime: "text/csv;charset=utf-8" },
-  { value: "typescript", label: "TypeScript", extension: "ts", mime: "text/typescript" },
-  { value: "zod", label: "Zod Schema", extension: "ts", mime: "text/typescript" },
-  { value: "json-schema", label: "JSON Schema", extension: "schema.json", mime: "application/schema+json" },
-  { value: "playwright", label: "Playwright fixture", extension: "ts", mime: "text/typescript" },
-  { value: "cypress", label: "Cypress fixture", extension: "json", mime: "application/json" },
-  { value: "postman", label: "Postman Environment", extension: "postman_environment.json", mime: "application/json" },
-  { value: "env", label: ".env", extension: "env", mime: "text/plain" },
-  { value: "sql", label: "SQL INSERT", extension: "sql", mime: "application/sql" },
-  { value: "python", label: "Python fixture", extension: "py", mime: "text/x-python" },
+  { value: "json", label: "JSON", extension: "json", mime: "application/json", description: "完整嵌套数据，推荐 API 与通用测试" },
+  { value: "ndjson", label: "NDJSON", extension: "ndjson", mime: "application/x-ndjson", description: "每行一条完整身份，适合流式导入" },
+  { value: "csv", label: "CSV", extension: "csv", mime: "text/csv;charset=utf-8", description: "完整字段扁平化，适合表格和数据仓库" },
+  { value: "typescript", label: "TypeScript", extension: "ts", mime: "text/typescript", description: "带自动推导类型的 fixtures" },
+  { value: "zod", label: "Zod Schema", extension: "ts", mime: "text/typescript", description: "Schema 与整批 fixtures" },
+  { value: "json-schema", label: "JSON Schema", extension: "schema.json", mime: "application/schema+json", description: "批次数组结构校验 Schema" },
+  { value: "playwright", label: "Playwright fixture", extension: "ts", mime: "text/typescript", description: "按 worker 自动分配完整身份" },
+  { value: "cypress", label: "Cypress fixture", extension: "json", mime: "application/json", description: "可直接放入 cypress/fixtures" },
+  { value: "postman", label: "Postman Environment", extension: "postman_environment.json", mime: "application/json", description: "首条快捷变量与整批 JSON" },
+  { value: "env", label: ".env", extension: "env", mime: "text/plain", description: "首条变量与整批 JSON 环境值" },
+  { value: "sql", label: "SQL INSERT", extension: "sql", mime: "application/sql", description: "关键列与完整 JSON 文档" },
+  { value: "python", label: "Python fixture", extension: "py", mime: "text/x-python", description: "标准库可直接载入的完整列表" },
 ];
 
 function csvEscape(value: unknown) {
@@ -40,45 +43,88 @@ function sqlEscape(value: unknown) {
   return `'${String(value ?? "").replaceAll("'", "''")}'`;
 }
 
+function dotenvEscape(value: string) {
+  return `"${value
+    .replaceAll("\\", "\\\\")
+    .replaceAll('"', '\\"')
+    .replaceAll("\n", "\\n")}"`;
+}
+
 function profileRows(profiles: SyntheticIdentity[]) {
   return profiles.map((profile) => ({
     id: profile.id,
+    schemaVersion: profile.meta.schemaVersion,
     scenario: profile.meta.scenario,
-    country: profile.country.code,
+    seed: profile.meta.seed,
+    quality: profile.meta.quality,
+    countryCode: profile.country.code,
+    countryName: profile.country.name,
+    countryFlag: profile.country.flag,
+    firstName: profile.personal.firstName,
+    lastName: profile.personal.lastName,
     fullName: profile.personal.fullName,
-    birthDate: profile.personal.birthDate,
-    age: profile.personal.age,
     gender: profile.personal.gender,
+    age: profile.personal.age,
+    birthDate: profile.personal.birthDate,
+    birthPlace: profile.personal.birthPlace,
+    documentNumber: profile.personal.documentNumber,
+    passportNumber: profile.personal.passportNumber,
+    username: profile.personal.username,
+    testPassword: profile.personal.testPassword,
+    locale: profile.personal.locale,
+    language: profile.personal.language,
+    timezone: profile.personal.timezone,
+    kycRiskLevel: profile.personal.kycRiskLevel,
     email: profile.contact.email,
     phone: profile.contact.phone,
-    address: profile.address.formatted,
+    street: profile.address.street,
+    houseNumber: profile.address.houseNumber,
     postalCode: profile.address.postalCode,
     city: profile.address.city,
     region: profile.address.region,
+    addressCountry: profile.address.country,
+    formattedAddress: profile.address.formatted,
+    taxLabel: profile.government.taxLabel,
     taxId: profile.government.taxId,
+    taxStatus: profile.government.taxStatus,
+    insuranceLabel: profile.government.insuranceLabel,
     insuranceNumber: profile.government.insuranceNumber,
+    bankName: profile.banking.bankName,
     iban: profile.banking.iban,
+    accountNumber: profile.banking.accountNumber,
     bic: profile.banking.bic,
     currency: profile.banking.currency,
+    accountType: profile.banking.accountType,
+    cardLabel: profile.banking.card.label,
     cardNumber: profile.banking.card.number,
+    cardExpiry: profile.banking.card.expiry,
+    cardCvc: profile.banking.card.cvc,
     employer: profile.employment.employer,
     jobTitle: profile.employment.jobTitle,
+    employeeId: profile.employment.employeeId,
+    annualSalary: profile.employment.annualSalary,
+    contractStartDate: profile.employment.contractStartDate,
+    companyName: profile.business.companyName,
+    vatId: profile.business.vatId,
+    registrationNumber: profile.business.registrationNumber,
+    paymentScheme: profile.payment.scheme,
+    paymentAmount: profile.payment.amount,
+    paymentCurrency: profile.payment.currency,
     endToEndId: profile.payment.endToEndId,
     creditorReference: profile.payment.creditorReference,
+    purposeCode: profile.payment.purposeCode,
+    remittanceInformation: profile.payment.remittanceInformation,
+    verificationOfPayee: profile.payment.verificationOfPayee,
+    paymentStreetName: profile.payment.structuredAddress.streetName,
+    paymentBuildingNumber: profile.payment.structuredAddress.buildingNumber,
+    paymentPostCode: profile.payment.structuredAddress.postCode,
+    paymentTownName: profile.payment.structuredAddress.townName,
+    paymentCountrySubdivision:
+      profile.payment.structuredAddress.countrySubdivision,
+    paymentCountry: profile.payment.structuredAddress.country,
+    profileJson: JSON.stringify(profile),
   }));
 }
-
-const TYPESCRIPT_INTERFACE = `export interface SyntheticIdentity {
-  id: string;
-  meta: { schemaVersion: "2.0"; scenario: string; seed: string | null; quality: "synthetic-test-data" };
-  country: { code: string; name: string; flag: string };
-  personal: { fullName: string; gender: "male" | "female"; age: number; birthDate: string; documentNumber: string; passportNumber: string; locale: string; timezone: string };
-  contact: { email: string; phone: string };
-  address: { formatted: string; postalCode: string; city: string; region: string; country: string };
-  government: { taxLabel: string; taxId: string; taxStatus: "checksum-valid" | "format-only"; insuranceLabel: string; insuranceNumber: string };
-  banking: { bankName: string; iban: string; bic: string; currency: string; accountType: "checking" | "savings"; card: { number: string; expiry: string; cvc: string } };
-  payment: { scheme: "SCT" | "LOCAL"; amount: number; currency: string; endToEndId: string; creditorReference: string; purposeCode: string; verificationOfPayee: string };
-}`;
 
 function zodExport(profiles: SyntheticIdentity[]) {
   return `import { z } from "zod";
@@ -115,19 +161,78 @@ export const fixtures = syntheticIdentitySchema.array().parse(${JSON.stringify(p
 function jsonSchemaExport() {
   return JSON.stringify({
     $schema: "https://json-schema.org/draft/2020-12/schema",
-    title: "IBAN DevTools Synthetic Identity",
-    type: "object",
-    required: ["id", "meta", "country", "personal", "contact", "address", "government", "banking", "payment"],
-    properties: {
-      id: { type: "string" },
-      meta: { type: "object", properties: { schemaVersion: { const: "2.0" }, scenario: { type: "string" }, seed: { type: ["string", "null"] }, quality: { const: "synthetic-test-data" } } },
-      country: { type: "object", properties: { code: { type: "string", minLength: 2, maxLength: 2 }, name: { type: "string" } } },
-      personal: { type: "object", properties: { fullName: { type: "string" }, gender: { enum: ["male", "female"] }, age: { type: "integer", minimum: 18, maximum: 80 }, birthDate: { type: "string", format: "date" } } },
-      contact: { type: "object", properties: { email: { type: "string", format: "email" }, phone: { type: "string" } } },
-      address: { type: "object" },
-      government: { type: "object" },
-      banking: { type: "object", properties: { iban: { type: "string" }, bic: { type: "string" }, currency: { type: "string" } } },
-      payment: { type: "object" },
+    title: "IBAN DevTools Synthetic Identity Batch",
+    type: "array",
+    items: { $ref: "#/$defs/syntheticIdentity" },
+    $defs: {
+      syntheticIdentity: {
+        type: "object",
+        additionalProperties: true,
+        required: [
+          "id",
+          "meta",
+          "country",
+          "personal",
+          "contact",
+          "address",
+          "government",
+          "banking",
+          "employment",
+          "business",
+          "payment",
+        ],
+        properties: {
+          id: { type: "string" },
+          meta: {
+            type: "object",
+            properties: {
+              schemaVersion: { const: "2.0" },
+              scenario: { type: "string" },
+              seed: { type: ["string", "null"] },
+              quality: { const: "synthetic-test-data" },
+            },
+          },
+          country: {
+            type: "object",
+            properties: {
+              code: { type: "string", minLength: 2, maxLength: 2 },
+              name: { type: "string" },
+            },
+          },
+          personal: {
+            type: "object",
+            properties: {
+              fullName: { type: "string" },
+              gender: { enum: ["male", "female"] },
+              age: { type: "integer", minimum: 18, maximum: 80 },
+              birthDate: { type: "string", format: "date" },
+              documentNumber: { type: "string" },
+              passportNumber: { type: "string" },
+              kycRiskLevel: { enum: ["low", "medium", "high"] },
+            },
+          },
+          contact: {
+            type: "object",
+            properties: {
+              email: { type: "string", format: "email" },
+              phone: { type: "string" },
+            },
+          },
+          address: { type: "object" },
+          government: { type: "object" },
+          banking: {
+            type: "object",
+            properties: {
+              iban: { type: "string" },
+              bic: { type: "string" },
+              currency: { type: "string" },
+            },
+          },
+          employment: { type: "object" },
+          business: { type: "object" },
+          payment: { type: "object" },
+        },
+      },
     },
   }, null, 2);
 }
@@ -138,6 +243,9 @@ export function exportProfiles(
 ) {
   const rows = profileRows(profiles);
   if (format === "json") return JSON.stringify(profiles, null, 2);
+  if (format === "ndjson") {
+    return `${profiles.map((profile) => JSON.stringify(profile)).join("\n")}\n`;
+  }
   if (format === "csv") {
     const keys = Object.keys(rows[0] ?? {});
     return [
@@ -148,12 +256,25 @@ export function exportProfiles(
     ].join("\n");
   }
   if (format === "typescript") {
-    return `${TYPESCRIPT_INTERFACE}\n\nexport const fixtures: SyntheticIdentity[] = ${JSON.stringify(profiles, null, 2)};\n`;
+    return `export const fixtures = ${JSON.stringify(profiles, null, 2)} as const;
+
+export type SyntheticIdentity = (typeof fixtures)[number];
+`;
   }
   if (format === "zod") return zodExport(profiles);
   if (format === "json-schema") return jsonSchemaExport();
   if (format === "playwright") {
-    return `import { test as base } from "@playwright/test";\n\n${TYPESCRIPT_INTERFACE}\n\nconst identities = ${JSON.stringify(profiles, null, 2)} satisfies SyntheticIdentity[];\n\nexport const test = base.extend<{ identity: SyntheticIdentity }>({\n  identity: async ({}, use, testInfo) => {\n    await use(identities[testInfo.workerIndex % identities.length]);\n  },\n});\n`;
+    return `import { test as base } from "@playwright/test";
+
+const identities = ${JSON.stringify(profiles, null, 2)} as const;
+type SyntheticIdentity = (typeof identities)[number];
+
+export const test = base.extend<{ identity: SyntheticIdentity }>({
+  identity: async ({}, use, testInfo) => {
+    await use(identities[testInfo.workerIndex % identities.length]);
+  },
+});
+`;
   }
   if (format === "cypress") return JSON.stringify({ identities: profiles }, null, 2);
   if (format === "postman") {
@@ -161,6 +282,8 @@ export function exportProfiles(
     return JSON.stringify({
       name: "IBAN DevTools Synthetic Identity",
       values: [
+        ["identity_count", String(profiles.length)],
+        ["identities_json", JSON.stringify(profiles)],
         ["identity_id", profile?.id],
         ["full_name", profile?.personal.fullName],
         ["email", profile?.contact.email],
@@ -176,9 +299,11 @@ export function exportProfiles(
   if (format === "env") {
     const profile = profiles[0];
     return [
+      `TEST_IDENTITY_COUNT=${profiles.length}`,
+      `TEST_IDENTITIES_JSON=${dotenvEscape(JSON.stringify(profiles))}`,
       `TEST_IDENTITY_ID=${profile?.id ?? ""}`,
-      `TEST_FULL_NAME=${profile?.personal.fullName ?? ""}`,
-      `TEST_EMAIL=${profile?.contact.email ?? ""}`,
+      `TEST_FULL_NAME=${dotenvEscape(profile?.personal.fullName ?? "")}`,
+      `TEST_EMAIL=${dotenvEscape(profile?.contact.email ?? "")}`,
       `TEST_IBAN=${profile?.banking.iban ?? ""}`,
       `TEST_BIC=${profile?.banking.bic ?? ""}`,
       `TEST_TAX_ID=${profile?.government.taxId ?? ""}`,
@@ -186,21 +311,30 @@ export function exportProfiles(
     ].join("\n");
   }
   if (format === "sql") {
-    const values = rows.map((row) =>
+    const values = profiles.map((profile) =>
       `(${[
-        row.id,
-        row.country,
-        row.fullName,
-        row.email,
-        row.iban,
-        row.bic,
-        row.taxId,
-        row.address,
+        profile.id,
+        profile.country.code,
+        profile.personal.fullName,
+        profile.contact.email,
+        profile.banking.iban,
+        profile.banking.bic,
+        profile.government.taxId,
+        profile.address.formatted,
+        JSON.stringify(profile),
       ].map(sqlEscape).join(", ")})`,
     );
-    return `INSERT INTO synthetic_identities\n  (id, country_code, full_name, email, iban, bic, tax_id, formatted_address)\nVALUES\n  ${values.join(",\n  ")};\n`;
+    return `INSERT INTO synthetic_identities
+  (id, country_code, full_name, email, iban, bic, tax_id, formatted_address, profile_json)
+VALUES
+  ${values.join(",\n  ")};
+`;
   }
-  return `# Generated by IBAN DevTools\nidentities = ${JSON.stringify(profiles, null, 2).replaceAll("null", "None").replaceAll("true", "True").replaceAll("false", "False")}\n`;
+  return `# Generated by IBAN DevTools
+import json
+
+identities = json.loads(r'''${JSON.stringify(profiles)}''')
+`;
 }
 
 export function exportFileMetadata(format: ExportFormat) {

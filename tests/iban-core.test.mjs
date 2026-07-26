@@ -71,6 +71,56 @@ test("all developer export formats return usable output", () => {
   }
 });
 
+test("batch exports include every profile and complete identity groups", () => {
+  const country = IBAN_COUNTRIES.find((item) => item.code === "FR");
+  const profiles = Array.from({ length: 3 }, (_, index) =>
+    generateSyntheticIdentity({
+      countryCode: "FR",
+      iban: generateIban(country, createRandomInt(`batch-export:${index}`)),
+      seed: "batch-export",
+      scenario: "payments",
+      index,
+    }),
+  );
+
+  const json = JSON.parse(exportProfiles(profiles, "json"));
+  assert.equal(json.length, 3);
+  assert.deepEqual(json[2].business, profiles[2].business);
+  assert.deepEqual(json[1].payment, profiles[1].payment);
+
+  const ndjson = exportProfiles(profiles, "ndjson").trim().split("\n");
+  assert.equal(ndjson.length, 3);
+  assert.equal(JSON.parse(ndjson[2]).id, profiles[2].id);
+
+  const csv = exportProfiles(profiles, "csv");
+  const [header, ...rows] = csv.split("\n");
+  assert.equal(rows.length, 3);
+  for (const field of [
+    "passportNumber",
+    "kycRiskLevel",
+    "companyName",
+    "annualSalary",
+    "verificationOfPayee",
+    "profileJson",
+  ]) {
+    assert.ok(header.includes(field), field);
+  }
+
+  const postman = JSON.parse(exportProfiles(profiles, "postman"));
+  const batchVariable = postman.values.find(
+    (item) => item.key === "identities_json",
+  );
+  assert.equal(JSON.parse(batchVariable.value).length, 3);
+
+  const sql = exportProfiles(profiles, "sql");
+  assert.ok(sql.includes("profile_json"));
+  assert.ok(sql.includes(profiles[2].business.companyName));
+
+  const environment = exportProfiles(profiles, "env");
+  assert.ok(environment.includes("TEST_IDENTITY_COUNT=3"));
+  assert.ok(environment.includes("TEST_IDENTITIES_JSON="));
+});
+
 test("1000 IBAN values remain unique and generate within the performance budget", () => {
   const country = IBAN_COUNTRIES.find((item) => item.code === "DE");
   const started = performance.now();
