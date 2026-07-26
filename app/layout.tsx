@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const title = "IBAN DevTools — IBAN 生成与校验";
+const title = "IBAN DevTools — IBAN 与德国测试身份生成器";
 const description =
-  "纯前端 IBAN 测试数据生成器，支持批量导出、MOD-97 校验与结构解析。";
+  "纯前端 IBAN 与德国测试身份生成器，支持 Steuer-ID、批量导出、MOD-97 校验与结构解析。";
 
 export async function generateMetadata(): Promise<Metadata> {
   const requestHeaders = await headers();
@@ -32,7 +32,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title,
     description,
     applicationName: "IBAN DevTools",
-    keywords: ["IBAN", "MOD-97", "test data", "developer tools", "validator"],
+    keywords: ["IBAN", "Steuer-ID", "German test data", "MOD-97", "developer tools", "validator"],
     openGraph: {
       title,
       description,

@@ -14,7 +14,7 @@
     "start:vercel": "next start",
     "deploy:cloudflare": "npm run build:cloudflare && wrangler deploy",
     "deploy:vercel": "vercel --prod",
-    "test": "npm run build && node --test tests/rendered-html.test.mjs",
+    "test": "npm run build && node --experimental-strip-types --test tests/*.test.mjs",
     "check": "npm run lint && npm run test && npm run build:vercel",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next"
   },
