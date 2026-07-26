@@ -8,11 +8,9 @@ import {
   type ProfileGender,
   type SyntheticIdentity,
 } from "@/lib/global-test-data";
-import {
-  generateIban,
-  IBAN_COUNTRY_MAP,
-  type IbanCaseMode,
-} from "@/lib/iban-core";
+import { type IbanCaseMode } from "@/lib/iban-core";
+import { COUNTRY_CATALOG_MAP } from "@/lib/country-catalog";
+import { generateNationalBanking } from "@/lib/national-banking";
 
 export type BatchWorkerRequest = {
   countryCode: string;
@@ -24,6 +22,11 @@ export type BatchWorkerRequest = {
   scenario: IdentityScenario;
   cityChoice: string;
   allowedCities: string[];
+  allowedGeoCities: Array<{
+    name: string;
+    region: string;
+    timezone?: string;
+  }>;
   genderChoice: ProfileGender | "random";
   ageChoice: AgeChoice;
   firstNameOverride: string;
@@ -38,7 +41,7 @@ export type BatchWorkerResponse =
 
 self.addEventListener("message", (event: MessageEvent<BatchWorkerRequest>) => {
   const input = event.data;
-  const country = IBAN_COUNTRY_MAP.get(input.countryCode);
+  const country = COUNTRY_CATALOG_MAP.get(input.countryCode);
   if (!country) {
     self.postMessage({ ok: false, error: "UNSUPPORTED_COUNTRY" } satisfies BatchWorkerResponse);
     return;
@@ -46,7 +49,7 @@ self.addEventListener("message", (event: MessageEvent<BatchWorkerRequest>) => {
 
   const started = performance.now();
   const profiles = Array.from({ length: input.count }, (_, index) => {
-    const iban = generateIban(
+    const bankingIdentity = generateNationalBanking(
       country,
       createRandomInt(input.seed ? `${input.seed}:iban:${index}` : undefined),
       {
@@ -55,7 +58,16 @@ self.addEventListener("message", (event: MessageEvent<BatchWorkerRequest>) => {
         caseMode: input.caseMode,
       },
     );
+    const geoCity =
+      input.allowedGeoCities[
+        createRandomInt(input.seed ? `${input.seed}:city:${index}` : undefined)(
+          input.allowedGeoCities.length,
+        )
+      ];
     const cityName =
+      geoCity
+        ? "random"
+        :
       input.cityChoice !== "random"
         ? input.cityChoice
         : input.allowedCities[
@@ -65,8 +77,10 @@ self.addEventListener("message", (event: MessageEvent<BatchWorkerRequest>) => {
           ] ?? "random";
     return generateSyntheticIdentity({
       countryCode: input.countryCode,
-      iban,
+      iban: bankingIdentity.iban ?? "",
+      bankingIdentity,
       cityName,
+      cityOverride: geoCity,
       genderChoice: input.genderChoice,
       ageChoice: input.ageChoice,
       firstNameOverride: input.firstNameOverride,

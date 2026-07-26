@@ -4,11 +4,9 @@ import {
   type IdentityScenario,
   type ProfileGender,
 } from "@/lib/global-test-data";
-import {
-  generateIban,
-  IBAN_COUNTRY_MAP,
-  type IbanCaseMode,
-} from "@/lib/iban-core";
+import { type IbanCaseMode } from "@/lib/iban-core";
+import { COUNTRY_CATALOG_MAP } from "@/lib/country-catalog";
+import { generateNationalBanking } from "@/lib/national-banking";
 
 export const runtime = "edge";
 
@@ -27,14 +25,16 @@ type GenerateRequest = {
   gender?: ProfileGender | "random";
   age?: number;
   city?: string;
+  region?: string;
+  timezone?: string;
 };
 
 function createResponse(input: GenerateRequest) {
   const countryCode = (input.country ?? "DE").toUpperCase();
-  const country = IBAN_COUNTRY_MAP.get(countryCode);
+  const country = COUNTRY_CATALOG_MAP.get(countryCode);
   if (!country) {
     return Response.json(
-      { error: "UNSUPPORTED_COUNTRY", supported: [...IBAN_COUNTRY_MAP.keys()] },
+      { error: "UNSUPPORTED_COUNTRY", supported: [...COUNTRY_CATALOG_MAP.keys()] },
       { status: 400, headers: CORS_HEADERS },
     );
   }
@@ -44,15 +44,24 @@ function createResponse(input: GenerateRequest) {
   const scenario = input.scenario ?? "complete";
   const caseMode = input.caseMode ?? "valid";
   const profiles = Array.from({ length: count }, (_, index) => {
-    const iban = generateIban(
+    const bankingIdentity = generateNationalBanking(
       country,
       createRandomInt(seed ? `${seed}:iban:${index}` : undefined),
       { caseMode },
     );
     return generateSyntheticIdentity({
       countryCode,
-      iban,
+      iban: bankingIdentity.iban ?? "",
+      bankingIdentity,
       cityName: input.city ?? "random",
+      cityOverride:
+        input.city && input.region
+          ? {
+              name: input.city,
+              region: input.region,
+              timezone: input.timezone,
+            }
+          : undefined,
       genderChoice: input.gender ?? "random",
       ageChoice: input.age ?? "random",
       scenario,
@@ -68,7 +77,8 @@ function createResponse(input: GenerateRequest) {
         country: countryCode,
         scenario,
         caseMode,
-        registryRelease: country.registryRelease,
+        paymentScheme: country.payment.scheme,
+        registryRelease: country.ibanSpec?.registryRelease ?? null,
         synthetic: true,
       },
       data: count === 1 ? profiles[0] : profiles,
@@ -88,6 +98,8 @@ export function GET(request: Request) {
     gender: (params.get("gender") as ProfileGender | "random" | null) ?? undefined,
     age: params.has("age") ? Number(params.get("age")) : undefined,
     city: params.get("city") ?? undefined,
+    region: params.get("region") ?? undefined,
+    timezone: params.get("timezone") ?? undefined,
   });
 }
 

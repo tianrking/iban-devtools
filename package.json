@@ -18,6 +18,7 @@
     "deploy:cloudflare": "npm run build:cloudflare && wrangler deploy",
     "deploy:vercel": "vercel --prod",
     "cli": "node --experimental-strip-types ./bin/iban-devtools.mjs",
+    "geo:americas": "node ./scripts/build-americas-geo-data.mjs",
     "registry:check": "node ./scripts/check-iban-registry.mjs",
     "test": "npm run build && node --experimental-strip-types --test tests/*.test.mjs",
     "check": "npm run lint && npm run test && npm run build:vercel",

@@ -5,11 +5,13 @@ import {
   generateSyntheticIdentity,
 } from "../lib/global-test-data.ts";
 import {
-  generateIban,
-  IBAN_COUNTRIES,
-  IBAN_COUNTRY_MAP,
   validateIban,
 } from "../lib/iban-core.ts";
+import {
+  COUNTRY_CATALOG,
+  COUNTRY_CATALOG_MAP,
+} from "../lib/country-catalog.ts";
+import { generateNationalBanking } from "../lib/national-banking.ts";
 import { exportProfiles } from "../lib/exporters.ts";
 
 const [, , command = "generate", ...rawArgs] = process.argv;
@@ -37,8 +39,8 @@ const args = readArgs(rawArgs);
 
 if (command === "countries") {
   process.stdout.write(
-    `${IBAN_COUNTRIES.map((country) =>
-      `${country.code}\t${country.name}\t${country.length}\t${country.currency}\t${country.sepa ? "SEPA" : "GLOBAL"}`,
+    `${COUNTRY_CATALOG.map((country) =>
+      `${country.code}\t${country.name}\t${country.payment.scheme}\t${country.currency}\t${country.continent}`,
     ).join("\n")}\n`,
   );
 } else if (command === "validate") {
@@ -52,7 +54,7 @@ if (command === "countries") {
   }
 } else if (command === "generate") {
   const countryCode = String(args.country ?? "DE").toUpperCase();
-  const country = IBAN_COUNTRY_MAP.get(countryCode);
+  const country = COUNTRY_CATALOG_MAP.get(countryCode);
   if (!country) {
     fail(`Unsupported country: ${countryCode}`);
   } else {
@@ -61,14 +63,15 @@ if (command === "countries") {
     const caseMode = String(args.case ?? "valid");
     const scenario = String(args.scenario ?? "complete");
     const profiles = Array.from({ length: count }, (_, index) => {
-      const iban = generateIban(
+      const bankingIdentity = generateNationalBanking(
         country,
         createRandomInt(seed ? `${seed}:iban:${index}` : undefined),
         { caseMode },
       );
       return generateSyntheticIdentity({
         countryCode,
-        iban,
+        iban: bankingIdentity.iban ?? "",
+        bankingIdentity,
         scenario,
         seed,
         index,

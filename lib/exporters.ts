@@ -91,6 +91,13 @@ function profileRows(profiles: SyntheticIdentity[]) {
     insuranceNumber: profile.government.insuranceNumber,
     bankName: profile.banking.bankName,
     iban: profile.banking.iban,
+    paymentIdentifierScheme: profile.banking.paymentIdentifier.scheme,
+    paymentIdentifierLabel: profile.banking.paymentIdentifier.label,
+    paymentIdentifier: profile.banking.paymentIdentifier.value,
+    routingNumber: profile.banking.paymentIdentifier.routingNumber,
+    institutionCode: profile.banking.paymentIdentifier.institutionCode,
+    branchCode: profile.banking.paymentIdentifier.branchCode,
+    paymentIdentifierValidation: profile.banking.paymentIdentifier.validation,
     accountNumber: profile.banking.accountNumber,
     bic: profile.banking.bic,
     currency: profile.banking.currency,
@@ -151,7 +158,18 @@ export const syntheticIdentitySchema = z.object({
   contact: z.object({ email: z.string().email(), phone: z.string() }),
   address: z.object({ formatted: z.string(), postalCode: z.string(), city: z.string(), region: z.string(), country: z.string() }).passthrough(),
   government: z.object({ taxLabel: z.string(), taxId: z.string(), taxStatus: z.enum(["checksum-valid", "format-only"]), insuranceLabel: z.string(), insuranceNumber: z.string() }),
-  banking: z.object({ iban: z.string(), bic: z.string(), currency: z.string().length(3), accountType: z.enum(["checking", "savings"]) }).passthrough(),
+  banking: z.object({
+    iban: z.string(),
+    paymentIdentifier: z.object({
+      scheme: z.enum(["IBAN", "ABA", "CACPA", "CLABE", "LOCAL"]),
+      label: z.string(),
+      value: z.string(),
+      validation: z.enum(["checksum-valid", "format-only", "negative-test-case"]),
+    }).passthrough(),
+    bic: z.string(),
+    currency: z.string().length(3),
+    accountType: z.enum(["checking", "savings"]),
+  }).passthrough(),
   payment: z.object({ scheme: z.enum(["SCT", "LOCAL"]), amount: z.number(), currency: z.string(), endToEndId: z.string(), creditorReference: z.string(), purposeCode: z.string(), verificationOfPayee: z.string() }).passthrough(),
 }).passthrough();
 
@@ -224,6 +242,17 @@ function jsonSchemaExport() {
             type: "object",
             properties: {
               iban: { type: "string" },
+              paymentIdentifier: {
+                type: "object",
+                properties: {
+                  scheme: { enum: ["IBAN", "ABA", "CACPA", "CLABE", "LOCAL"] },
+                  label: { type: "string" },
+                  value: { type: "string" },
+                  validation: {
+                    enum: ["checksum-valid", "format-only", "negative-test-case"],
+                  },
+                },
+              },
               bic: { type: "string" },
               currency: { type: "string" },
             },

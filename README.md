@@ -1,6 +1,6 @@
 # IBAN DevTools
 
-一款为开发者设计的完整跨国测试身份、IBAN、KYC 与支付测试数据工作台。网页生成默认完全在浏览器本地完成，也提供可选的 Edge API 与 CLI。
+一款为开发者设计的完整跨国测试身份、IBAN、本地银行标识、KYC 与支付测试数据工作台。网页生成默认完全在浏览器本地完成，也提供可选的 Edge API 与 CLI。
 
 [![Vercel Ready](https://img.shields.io/badge/Vercel-ready-000000?style=flat-square&logo=vercel)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Ftianrking%2Fiban-devtools)
 [![Cloudflare Ready](https://img.shields.io/badge/Cloudflare-Workers-F48120?style=flat-square&logo=cloudflare&logoColor=white)](https://deploy.workers.cloudflare.com/?url=https://github.com/tianrking/iban-devtools)
@@ -11,14 +11,18 @@
 ## 功能
 
 - 内置 89 个 IBAN 国家/地区结构，覆盖 SEPA 与全球 IBAN 注册格式
+- 身份目录扩展为 117 个市场；覆盖美洲 35 个主权国家
+- 美洲按国家懒加载 643 个州/省级地区与 42,318 个城市，选择地区后可指定该地区的全部目录城市
+- 美国生成带校验位的 ABA routing + account，加拿大生成 9 位电子 routing + account，墨西哥生成带校验位的 18 位 CLABE
+- 美国、加拿大、墨西哥等非 IBAN 国家不会生成或暗示虚假 IBAN
 - 使用 ISO 13616 / MOD-97 算法生成合法校验码
 - 支持合法、错误校验码、错误长度、非法字符、错误 BBAN、小写和连字符测试用例
 - 单条生成、自定义 BBAN、格式化与 Raw 输出，并支持分层错误诊断
-- 国家、州/地区、城市三级联动，确保本地化数据落在所选区域
+- 国家、州/地区、城市三级联动，确保所选城市属于所选地区；美洲地理目录按国家加载，不拖慢首页
 - 国家搜索、SEPA/全球筛选、币种与注册表结构提示
 - 支持随机、指定与区间年龄策略，以及性别、姓名、街道和邮编覆盖
 - 支持固定随机种子，可稳定复现同一套回归测试数据
-- 完整身份包含证件、护照、地址、保险、税务、IBAN、BIC、沙盒银行卡、企业、薪资和 KYC 字段
+- 完整身份包含证件、护照、地址、保险、税务、IBAN 或本地支付标识、BIC、沙盒银行卡、企业、薪资和 KYC 字段
 - 支付字段包含 SCT/LOCAL、End-to-End ID、RF Creditor Reference、Purpose Code、VoP 与结构化地址
 - 完整身份支持 1–1000 条批量生成，25 条分页预览
 - 内置 KYC、支付、薪资、电商、SEPA、API 边界和数据库种子场景
@@ -56,6 +60,7 @@ npm run check
 
 # CLI
 npm run cli -- generate --country DE --count 10 --seed qa-01 --format json
+npm run cli -- generate --country US --count 10 --seed ach-qa --format json
 npm run cli -- validate DE89370400440532013000
 npm run cli -- countries
 ```
@@ -69,6 +74,7 @@ GitHub Actions 会在每次推送与 Pull Request 时同时验证两个目标平
 ```bash
 # 生成一条或一个批次（最大 1000）
 curl 'http://localhost:3000/api/generate?country=FR&count=10&seed=qa-01&scenario=sepa'
+curl 'http://localhost:3000/api/generate?country=US&count=10&seed=ach-qa&scenario=payments'
 
 # 分层校验
 curl 'http://localhost:3000/api/validate?iban=DE89370400440532013000'
@@ -110,16 +116,20 @@ app/
 └── layout.tsx       # 页面元数据、PWA 与社交分享
 lib/
 ├── iban-core.ts        # 89 国注册表、MOD-97、生成与分层校验
+├── country-catalog.ts  # IBAN 与美洲身份/支付国家目录
+├── national-banking.ts # ABA、加拿大 routing、CLABE 与本地测试标识
 ├── exporters.ts        # 12 种完整批量开发者导出格式
 ├── global-test-data.ts # 完整测试身份、KYC 与支付数据
 └── german-test-data.ts # 德国 Steuer-ID 校验算法
 bin/
 └── iban-devtools.mjs   # Node.js CLI
 public/
+├── data/americas/      # 按国家拆分、浏览器按需加载的地理目录
 ├── manifest.webmanifest
 ├── sw.js
 └── og.png
 scripts/
+├── build-americas-geo-data.mjs
 └── check-iban-registry.mjs
 worker/
 └── index.ts         # Cloudflare Worker 入口
@@ -137,6 +147,11 @@ IBAN 校验基于 ISO 13616：
 4. 合法 IBAN 的 MOD-97 余数为 `1`。
 
 生成结果只保证格式和校验算法合法，不代表真实银行账户。
+
+美洲城市目录来自 Countries States Cities Database `v3.2-export.6`，
+以 ODbL 1.0 许可再分发。它是社区维护的广覆盖参考目录，不是各国政府
+实时行政名录，不能保证永久完整或零错误。详细来源、许可与各字段的
+准确性边界见 [DATA_SOURCES.md](DATA_SOURCES.md)。
 
 德国 Steuer-ID 使用 ISO/IEC 7064 MOD 11,10 校验算法，并采用经典的十位主体数字重复规则。其他国家的税务与保险字段明确标记为格式测试值。沙盒银行卡为公开测试卡，不能用于真实扣款。
 

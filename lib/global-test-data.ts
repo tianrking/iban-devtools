@@ -6,8 +6,12 @@ import {
   cleanIban,
   IBAN_COUNTRY_MAP,
   mod97,
-  type IbanCountrySpec,
 } from "./iban-core.ts";
+import {
+  COUNTRY_CATALOG_MAP,
+  type CountryCatalogSpec,
+} from "./country-catalog.ts";
+import type { NationalBankingIdentity } from "./national-banking.ts";
 
 export type ProfileGender = "male" | "female";
 export type AgeChoice = number | "random" | { min: number; max: number };
@@ -27,6 +31,7 @@ export type IdentityCity = {
   region: string;
   postalCode: string;
   streets: string[];
+  timezone?: string;
 };
 
 export type IdentityCountrySpec = {
@@ -96,6 +101,7 @@ export type SyntheticIdentity = {
   banking: {
     bankName: string;
     iban: string;
+    paymentIdentifier: NationalBankingIdentity;
     accountNumber: string;
     bic: string;
     currency: string;
@@ -357,6 +363,17 @@ export const DEFAULT_SYNTHETIC_IDENTITY: SyntheticIdentity = {
   banking: {
     bankName: "德国 Test Bank",
     iban: "DE89370400440532013000",
+    paymentIdentifier: {
+      scheme: "IBAN",
+      label: "IBAN",
+      value: "DE89370400440532013000",
+      routingNumber: null,
+      institutionCode: "37040044",
+      branchCode: null,
+      accountNumber: "0532013000",
+      iban: "DE89370400440532013000",
+      validation: "checksum-valid",
+    },
     accountNumber: "370400440532013000",
     bic: "TSTBDEXXXXX",
     currency: "EUR",
@@ -428,38 +445,81 @@ const LOCALE_OVERRIDES: Record<string, [string, string, string]> = {
   LU: ["fr-LU", "fr", "Europe/Luxembourg"],
 };
 
-function genericIdentityCountry(spec: IbanCountrySpec): IdentityCountrySpec {
+const GENERIC_LOCALIZATION: Record<
+  string,
+  {
+    maleNames: string[];
+    femaleNames: string[];
+    lastNames: string[];
+    streets: string[];
+  }
+> = {
+  en: {
+    maleNames: ["Ethan", "James", "Liam", "Noah"],
+    femaleNames: ["Ava", "Emma", "Mia", "Olivia"],
+    lastNames: ["Anderson", "Brown", "Martin", "Taylor", "Wilson"],
+    streets: ["Example Street", "Integration Avenue", "Fixture Road"],
+  },
+  es: {
+    maleNames: ["Alejandro", "Diego", "Mateo", "Santiago"],
+    femaleNames: ["Camila", "Lucía", "Sofía", "Valentina"],
+    lastNames: ["García", "González", "Martínez", "Rodríguez", "Sánchez"],
+    streets: ["Calle Ejemplo", "Avenida Integración", "Calle de Pruebas"],
+  },
+  pt: {
+    maleNames: ["Gabriel", "João", "Lucas", "Miguel"],
+    femaleNames: ["Ana", "Beatriz", "Mariana", "Sofia"],
+    lastNames: ["Costa", "Oliveira", "Pereira", "Santos", "Silva"],
+    streets: ["Rua Exemplo", "Avenida Integração", "Rua de Teste"],
+  },
+  fr: {
+    maleNames: ["Gabriel", "Hugo", "Louis", "Nathan"],
+    femaleNames: ["Camille", "Emma", "Léa", "Sophie"],
+    lastNames: ["Bernard", "Dubois", "Martin", "Petit", "Robert"],
+    streets: ["Rue Exemple", "Avenue Intégration", "Rue de Test"],
+  },
+  nl: {
+    maleNames: ["Daan", "Finn", "Lars", "Sem"],
+    femaleNames: ["Emma", "Julia", "Sanne", "Tess"],
+    lastNames: ["Bakker", "De Jong", "De Vries", "Jansen", "Visser"],
+    streets: ["Voorbeeldstraat", "Integratielaan", "Testweg"],
+  },
+};
+
+function genericIdentityCountry(spec: CountryCatalogSpec): IdentityCountrySpec {
+  const localization =
+    GENERIC_LOCALIZATION[spec.language] ?? GENERIC_LOCALIZATION.en;
   return {
     code: spec.code,
     name: spec.name,
     flag: spec.flag,
-    maleNames: ["Alex", "Daniel", "Martin", "Noah"],
-    femaleNames: ["Anna", "Emma", "Mia", "Sofia"],
-    lastNames: ["Anders", "Martin", "Novak", "Silva", "Taylor"],
+    maleNames: localization.maleNames,
+    femaleNames: localization.femaleNames,
+    lastNames: localization.lastNames,
     cities: [
       {
         name: `${spec.code} Sandbox City`,
         region: `${spec.code} North Test Region`,
         postalCode: "00001",
-        streets: ["Example Street", "Integration Avenue"],
+        streets: localization.streets,
       },
       {
         name: `${spec.code} Fixture City`,
         region: `${spec.code} Central Test Region`,
         postalCode: "00002",
-        streets: ["Fixture Lane", "Automation Road"],
+        streets: localization.streets,
       },
       {
         name: `${spec.code} Boundary City`,
         region: `${spec.code} South Test Region`,
         postalCode: "99999",
-        streets: ["Boundary Boulevard", "Mock Data Street"],
+        streets: localization.streets,
       },
     ],
-    phonePrefix: "+999",
-    emailDomain: `example.${spec.code.toLowerCase()}`,
-    taxLabel: `${spec.code} tax identifier (format-only)`,
-    insuranceLabel: `${spec.code} insurance reference (format-only)`,
+    phonePrefix: spec.phonePrefix,
+    emailDomain: spec.emailDomain,
+    taxLabel: spec.taxLabel,
+    insuranceLabel: spec.insuranceLabel,
   };
 }
 
@@ -608,14 +668,16 @@ function generateContractStartDate(randomInt: RandomInt) {
 export function getIdentityCountry(countryCode: string) {
   const localized = COUNTRY_MAP.get(countryCode);
   if (localized) return localized;
-  const registrySpec = IBAN_COUNTRY_MAP.get(countryCode);
-  return registrySpec ? genericIdentityCountry(registrySpec) : IDENTITY_COUNTRIES[0];
+  const country = COUNTRY_CATALOG_MAP.get(countryCode);
+  return country ? genericIdentityCountry(country) : IDENTITY_COUNTRIES[0];
 }
 
 export function generateSyntheticIdentity({
   countryCode,
-  iban,
+  iban = "",
+  bankingIdentity,
   cityName = "random",
+  cityOverride,
   genderChoice = "random",
   ageChoice = "random",
   firstNameOverride = "",
@@ -627,8 +689,10 @@ export function generateSyntheticIdentity({
   index = 0,
 }: {
   countryCode: string;
-  iban: string;
+  iban?: string;
+  bankingIdentity?: NationalBankingIdentity;
   cityName?: string;
+  cityOverride?: Pick<IdentityCity, "name" | "region" | "timezone">;
   genderChoice?: ProfileGender | "random";
   ageChoice?: AgeChoice;
   firstNameOverride?: string;
@@ -641,8 +705,19 @@ export function generateSyntheticIdentity({
 }): SyntheticIdentity {
   const randomInt = createRandomInt(seed ? `${seed}:identity:${index}` : undefined);
   const spec = getIdentityCountry(countryCode);
-  const city =
-    cityName === "random"
+  const catalogSpec = COUNTRY_CATALOG_MAP.get(spec.code);
+  const fallbackStreets =
+    GENERIC_LOCALIZATION[catalogSpec?.language ?? "en"]?.streets ??
+    GENERIC_LOCALIZATION.en.streets;
+  const city: IdentityCity = cityOverride
+    ? {
+        name: cityOverride.name,
+        region: cityOverride.region,
+        timezone: cityOverride.timezone,
+        postalCode: "00000",
+        streets: fallbackStreets,
+      }
+    : cityName === "random"
       ? pick(spec.cities, randomInt)
       : spec.cities.find((item) => item.name === cityName) ?? spec.cities[0];
   const gender = genderChoice === "random"
@@ -665,11 +740,29 @@ export function generateSyntheticIdentity({
   const postalCode = postalCodeOverride.trim() || city.postalCode;
   const taxId = generateTaxId(spec.code, gender, randomInt);
   const registrySpec = IBAN_COUNTRY_MAP.get(spec.code);
-  const [locale, language, timezone] =
-    LOCALE_OVERRIDES[spec.code] ?? [`en-${spec.code}`, "en", "UTC"];
+  const [locale, language, defaultTimezone] =
+    LOCALE_OVERRIDES[spec.code] ??
+    [
+      catalogSpec?.locale ?? `en-${spec.code}`,
+      catalogSpec?.language ?? "en",
+      catalogSpec?.timezone ?? "UTC",
+    ];
+  const timezone = city.timezone ?? defaultTimezone;
   const username = `${slugifyName(firstName)}.${slugifyName(lastName)}`;
   const cleanBankIban = cleanIban(iban);
-  const currency = scenario === "sepa" ? "EUR" : registrySpec?.currency ?? "EUR";
+  const resolvedBanking: NationalBankingIdentity = bankingIdentity ?? {
+    scheme: "IBAN",
+    label: "IBAN",
+    value: iban,
+    routingNumber: null,
+    institutionCode: null,
+    branchCode: null,
+    accountNumber: cleanBankIban.slice(4),
+    iban: iban || null,
+    validation: "format-only",
+  };
+  const currency =
+    scenario === "sepa" ? "EUR" : catalogSpec?.currency ?? registrySpec?.currency ?? "EUR";
   const salary = 32000 + randomInt(88001);
   const creditorReference = generateCreditorReference(randomInt);
   const stableId = seed
@@ -726,8 +819,9 @@ export function generateSyntheticIdentity({
     },
     banking: {
       bankName: `${spec.name} Test Bank`,
-      iban,
-      accountNumber: cleanBankIban.slice(4),
+      iban: resolvedBanking.iban ?? "",
+      paymentIdentifier: resolvedBanking,
+      accountNumber: resolvedBanking.accountNumber,
       bic: `TSTB${spec.code}XXXXX`,
       currency,
       accountType: pick(["checking", "savings"], randomInt),
