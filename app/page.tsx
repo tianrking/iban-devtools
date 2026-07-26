@@ -180,8 +180,12 @@ export default function Home() {
   };
 
   const copyText = async (text: string, message = "已复制到剪贴板") => {
-    await navigator.clipboard.writeText(text);
-    showToast(message);
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast(message);
+    } catch {
+      showToast("复制失败，请手动选择文本");
+    }
   };
 
   const regenerate = () => {
@@ -254,11 +258,13 @@ export default function Home() {
         <a className="brand" href="#" aria-label="IBAN DevTools 首页">
           <span className="brand-mark">IB</span>
           <span>IBAN <b>DevTools</b></span>
+          <span className="version-badge">v1.0</span>
         </a>
         <div className="header-meta">
           <span className="local-badge"><i /> 100% 本地运行</span>
-          <a className="github-link" href="https://github.com/" target="_blank" rel="noreferrer">
-            GitHub <span>↗</span>
+          <a className="header-link" href="#tool">开始使用</a>
+          <a className="github-link" href="https://github.com/tianrking/iban-devtools" target="_blank" rel="noreferrer">
+            <span className="github-dot">●</span> GitHub <span>↗</span>
           </a>
         </div>
       </header>
@@ -268,6 +274,12 @@ export default function Home() {
           <p className="eyebrow">ISO 13616 · MOD-97</p>
           <h1>IBAN 测试数据，<em>即刻可用。</em></h1>
           <p className="lede">在浏览器内生成、批量导出并校验合法格式的 IBAN。无请求、无存储，专为开发与自动化测试设计。</p>
+          <div className="platform-row" aria-label="支持的部署平台">
+            <span className="platform-label">DEPLOY ANYWHERE</span>
+            <span className="platform-chip vercel-chip"><b>▲</b> Vercel</span>
+            <span className="platform-chip cloudflare-chip"><b>☁</b> Cloudflare</span>
+            <span className="platform-chip"><b>◇</b> Open Source</span>
+          </div>
         </div>
         <div className="intro-stat" aria-label="性能指标">
           <span>GENERATION</span>
@@ -276,7 +288,7 @@ export default function Home() {
         </div>
       </section>
 
-      <nav className="main-tabs" aria-label="工具模式">
+      <nav className="main-tabs" id="tool" aria-label="工具模式">
         <button className={tab === "generate" ? "active" : ""} onClick={() => setTab("generate")}>
           <span>01</span> 生成器
         </button>
@@ -343,7 +355,7 @@ export default function Home() {
               <div className="field">
                 <label>生成数量</label>
                 <div className="count-options">
-                  {[5, 10, 50, 100].map((count) => (
+                  {[5, 10, 50, 100, 1000].map((count) => (
                     <button key={count} className={batchCount === count ? "active" : ""} onClick={() => setBatchCount(count)}>
                       {count}
                     </button>
@@ -534,7 +546,7 @@ export default function Home() {
       <footer>
         <div className="footer-mark">IB</div>
         <p>本工具生成的 IBAN 仅供软件开发与测试使用，符合 ISO 13616 标准校验算法，但不代表真实的银行账户。</p>
-        <span>NO DATA LEAVES YOUR BROWSER</span>
+        <a href="https://github.com/tianrking/iban-devtools" target="_blank" rel="noreferrer">SOURCE ON GITHUB ↗</a>
       </footer>
 
       {toast && <div className="toast"><span>✓</span>{toast}</div>}

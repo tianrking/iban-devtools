@@ -4,7 +4,7 @@
   --ink: #121616;
   --muted: #65706d;
   --line: #d9dfdb;
-  --paper: #f4f6f1;
+  --paper: #edf0e9;
   --panel: #fbfcf8;
   --dark: #111817;
   --lime: #c9f46b;
@@ -24,8 +24,10 @@ html {
 body {
   margin: 0;
   background:
-    linear-gradient(rgba(18, 22, 22, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(18, 22, 22, 0.035) 1px, transparent 1px),
+    radial-gradient(circle at 12% 6%, rgba(201, 244, 107, 0.22), transparent 24rem),
+    radial-gradient(circle at 92% 28%, rgba(105, 168, 255, 0.12), transparent 26rem),
+    linear-gradient(rgba(18, 22, 22, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(18, 22, 22, 0.03) 1px, transparent 1px),
     var(--paper);
   background-size: 32px 32px;
   color: var(--ink);
@@ -54,17 +56,26 @@ a:focus-visible {
 }
 
 main {
-  width: min(1180px, calc(100% - 40px));
+  width: min(1220px, calc(100% - 40px));
   margin: 0 auto;
   min-height: 100vh;
 }
 
 .site-header {
-  height: 76px;
+  position: sticky;
+  z-index: 20;
+  top: 10px;
+  height: 62px;
+  margin-top: 10px;
+  padding: 0 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--line);
+  border: 1px solid rgba(194, 203, 197, 0.82);
+  border-radius: 14px;
+  background: rgba(249, 251, 246, 0.84);
+  box-shadow: 0 10px 34px rgba(31, 43, 38, 0.08);
+  backdrop-filter: blur(18px);
 }
 
 .brand {
@@ -94,6 +105,15 @@ main {
   font-weight: 750;
 }
 
+.version-badge {
+  margin-left: 2px;
+  padding: 4px 6px;
+  border: 1px solid #d6ddd8;
+  border-radius: 99px;
+  color: #7b8581;
+  font: 650 8px/1 var(--font-geist-mono), monospace;
+}
+
 .header-meta {
   display: flex;
   align-items: center;
@@ -119,10 +139,25 @@ main {
 }
 
 .github-link {
+  display: inline-flex;
+  align-items: center;
   color: var(--ink);
   text-decoration: none;
   font-size: 13px;
   font-weight: 700;
+}
+
+.header-link {
+  color: #5f6a66;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.github-dot {
+  margin-right: 7px !important;
+  color: var(--ink) !important;
+  font-size: 8px;
 }
 
 .github-link span {
@@ -135,7 +170,7 @@ main {
   grid-template-columns: 1fr auto;
   align-items: end;
   gap: 40px;
-  padding: 54px 0 46px;
+  padding: 62px 18px 48px;
 }
 
 .eyebrow,
@@ -168,6 +203,43 @@ main {
   line-height: 1.75;
 }
 
+.platform-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.platform-label {
+  margin-right: 4px;
+  color: #7a8581;
+  font: 650 8px/1 var(--font-geist-mono), monospace;
+  letter-spacing: 0.11em;
+}
+
+.platform-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid rgba(193, 202, 196, 0.9);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.58);
+  color: #47524e;
+  font: 650 9px/1 var(--font-geist-mono), monospace;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.7);
+}
+
+.platform-chip b {
+  color: var(--ink);
+  font-size: 10px;
+}
+
+.cloudflare-chip b {
+  color: #f48120;
+}
+
 .intro-stat {
   width: 165px;
   padding-left: 22px;
@@ -194,7 +266,7 @@ main {
   gap: 4px;
   padding: 4px;
   width: fit-content;
-  margin-bottom: 16px;
+  margin: 0 0 16px 12px;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.55);
@@ -231,17 +303,22 @@ main {
   display: grid;
   grid-template-columns: 338px minmax(0, 1fr);
   min-height: 580px;
-  border: 1px solid var(--line);
+  border: 1px solid #cfd7d2;
+  border-radius: 18px;
   background: var(--panel);
-  box-shadow: 0 24px 55px rgba(31, 43, 38, 0.08);
+  box-shadow: 0 30px 80px rgba(31, 43, 38, 0.13);
+  overflow: hidden;
 }
 
 .config-panel {
   display: flex;
   flex-direction: column;
   padding: 28px;
-  border-right: 1px solid var(--line);
-  background: #f9faf6;
+  border-right: 0;
+  background:
+    radial-gradient(circle at 10% 0, rgba(201, 244, 107, 0.09), transparent 18rem),
+    #111817;
+  color: white;
 }
 
 .panel-heading,
@@ -264,12 +341,26 @@ main {
   letter-spacing: -0.03em;
 }
 
+.config-panel .panel-heading h2 {
+  color: white;
+}
+
+.config-panel .step {
+  color: #82908a;
+}
+
 .config-status {
   padding: 5px 8px;
   border: 1px solid #c8d2c9;
   border-radius: 99px;
   color: #53705b;
   font: 650 9px/1 var(--font-geist-mono), monospace;
+}
+
+.config-panel .config-status {
+  border-color: #3a4b44;
+  background: rgba(201, 244, 107, 0.08);
+  color: var(--lime);
 }
 
 .field {
@@ -283,6 +374,15 @@ main {
   color: #2f3735;
   font-size: 12px;
   font-weight: 750;
+}
+
+.config-panel .field label {
+  color: #dfe6e2;
+}
+
+.config-panel .field small,
+.config-panel .advanced-fields p {
+  color: #7f8d87;
 }
 
 .field small,
@@ -309,6 +409,17 @@ main {
   color: var(--ink);
   font-size: 12px;
   font-weight: 650;
+}
+
+.config-panel .select-wrap select,
+.config-panel .advanced-fields input {
+  border-color: #34413c;
+  background: #1b2421;
+  color: #f3f7f4;
+}
+
+.config-panel .select-wrap span {
+  color: #95a19c;
 }
 
 .select-wrap span {
@@ -348,8 +459,26 @@ main {
   box-shadow: 0 2px 8px rgba(25, 35, 31, 0.09);
 }
 
+.config-panel .segmented,
+.config-panel .count-options {
+  border-color: #35413d;
+  background: #0d1311;
+}
+
+.config-panel .segmented button,
+.config-panel .count-options button {
+  color: #89968f;
+}
+
+.config-panel .segmented button.active,
+.config-panel .count-options button.active {
+  background: var(--lime);
+  color: #16201d;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.24);
+}
+
 .count-options {
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
 }
 
 .format-field {
@@ -401,6 +530,14 @@ main {
   border-bottom: 1px solid var(--line);
 }
 
+.config-panel .advanced {
+  border-color: #303c37;
+}
+
+.config-panel .advanced-trigger {
+  color: #bdc8c3;
+}
+
 .advanced-trigger {
   width: 100%;
   padding: 15px 1px;
@@ -441,8 +578,8 @@ main {
   padding: 0 16px;
   border: 0;
   border-radius: 8px;
-  background: var(--ink);
-  color: white;
+  background: var(--lime);
+  color: #111817;
   font-size: 12px;
   font-weight: 750;
   box-shadow: 0 10px 22px rgba(18, 22, 22, 0.18);
@@ -460,8 +597,8 @@ main {
   display: grid;
   place-items: center;
   border-radius: 5px;
-  background: var(--lime);
-  color: var(--ink);
+  background: #111817;
+  color: var(--lime);
 }
 
 .result-panel {
@@ -469,7 +606,7 @@ main {
   padding: 32px;
   background:
     radial-gradient(circle at 90% 0, rgba(201, 244, 107, 0.12), transparent 30%),
-    white;
+    #ffffff;
 }
 
 .valid-chip {
@@ -555,6 +692,7 @@ main {
 .structure {
   padding: 22px;
   border: 1px solid var(--line);
+  border-radius: 10px;
   background: #fafbf8;
 }
 
@@ -635,7 +773,10 @@ main {
   margin-top: 14px;
   padding: 17px 20px;
   border: 1px solid #28322f;
-  background: var(--dark);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 100% 0, rgba(201, 244, 107, 0.1), transparent 13rem),
+    var(--dark);
   color: white;
 }
 
@@ -752,9 +893,11 @@ main {
   display: grid;
   grid-template-columns: 0.82fr 1.18fr;
   min-height: 520px;
-  border: 1px solid var(--line);
+  border: 1px solid #cfd7d2;
+  border-radius: 18px;
   background: white;
-  box-shadow: 0 24px 55px rgba(31, 43, 38, 0.08);
+  box-shadow: 0 30px 80px rgba(31, 43, 38, 0.13);
+  overflow: hidden;
 }
 
 .validator-input-card,
@@ -911,6 +1054,17 @@ footer > span {
   letter-spacing: 0.08em;
 }
 
+footer > a {
+  color: #6f7975;
+  text-decoration: none;
+  font: 650 8px/1 var(--font-geist-mono), monospace;
+  letter-spacing: 0.08em;
+}
+
+footer > a:hover {
+  color: var(--ink);
+}
+
 .toast {
   position: fixed;
   z-index: 10;
@@ -977,9 +1131,13 @@ footer > span {
 
   .site-header {
     height: 64px;
+    top: 6px;
+    padding: 0 12px;
   }
 
-  .local-badge {
+  .local-badge,
+  .header-link,
+  .version-badge {
     display: none;
   }
 
@@ -1030,7 +1188,7 @@ footer > span {
     padding: 24px 0;
   }
 
-  footer > span {
+  footer > a {
     display: none;
   }
 }
