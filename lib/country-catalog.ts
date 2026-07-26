@@ -229,7 +229,9 @@ function catalogEntry(source: GeneratedWorldCountry): CountryCatalogSpec {
   return {
     code: source.code,
     flag: source.flag,
-    name: source.name,
+    // Keep generated/exported data language-neutral. The UI localizes this
+    // stable English value with Intl.DisplayNames.
+    name: source.englishName,
     englishName: source.englishName,
     nativeName: source.nativeName,
     currency: source.currency,

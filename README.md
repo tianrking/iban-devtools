@@ -30,6 +30,8 @@
 - 内置 KYC、支付、薪资、电商、SEPA、API 边界和数据库种子场景
 - 整批导出 JSON、NDJSON、完整字段 CSV、TypeScript、Zod、JSON Schema、Playwright、Cypress、Postman、`.env`、SQL 与 Python
 - 跟随当前国家的上下文场景预设、配置恢复/重置、可复现 URL、深色模式与 `⌘K` 命令面板
+- 界面默认英文，支持 English、Español、Français、العربية、繁體中文与简体中文；阿拉伯语自动启用 RTL，IBAN、卡号和代码仍保持 LTR
+- 语言偏好保存在浏览器并写入分享链接；国家显示名随界面语言本地化，JSON、CSV、Schema 等开发者导出字段与固定种子结果保持稳定
 - 移动端固定生成操作栏，长表单中无需反复滚动寻找生成按钮
 - 支持离线安装的 PWA；浏览器工作台不上传输入，仅在本地保存最后一次配置
 - 提供 CORS Edge API、命令行工具与每月 SWIFT 注册表版本提醒

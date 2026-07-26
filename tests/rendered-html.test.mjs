@@ -2,14 +2,17 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-async function render() {
+async function render(path = "/") {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
   workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
   const { default: worker } = await import(workerUrl.href);
 
   return worker.fetch(
-    new Request("https://iban.example/", {
-      headers: { accept: "text/html", host: "iban.example" },
+    new Request(`https://iban.example${path}`, {
+      headers: {
+        accept: path.startsWith("/api/") ? "application/json" : "text/html",
+        host: "iban.example",
+      },
     }),
     {
       ASSETS: {
@@ -23,6 +26,17 @@ async function render() {
   );
 }
 
+test("validator API uses stable English country metadata", async () => {
+  const response = await render(
+    "/api/validate?iban=DE89370400440532013000",
+  );
+  assert.equal(response.status, 200);
+  const result = await response.json();
+  assert.equal(result.valid, true);
+  assert.equal(result.country.code, "DE");
+  assert.equal(result.country.name, "Germany");
+});
+
 test("server-renders the complete IBAN tool", async () => {
   const response = await render();
   assert.equal(response.status, 200);
@@ -30,16 +44,23 @@ test("server-renders the complete IBAN tool", async () => {
 
   const html = await response.text();
   assert.match(html, /<title>IBAN DevTools/);
-  assert.match(html, /一个身份/);
-  assert.match(html, /生成器/);
-  assert.match(html, /校验与解析/);
-  assert.match(html, /银行账户与银行卡/);
-  assert.match(html, /完整测试身份/);
-  assert.match(html, /精确生成配置/);
-  assert.match(html, /随机种子/);
-  assert.match(html, /身份与地址覆盖/);
-  assert.match(html, /100% 本地运行/);
-  assert.match(html, /仅供软件开发、测试和教学使用/);
+  assert.match(html, /<html[^>]*lang="en"[^>]*dir="ltr"/);
+  assert.match(html, /One identity/);
+  assert.match(html, /Generator/);
+  assert.match(html, /Validate &amp; inspect/);
+  assert.match(html, /Bank account &amp; card/);
+  assert.match(html, /Generate complete test identity/);
+  assert.match(html, /Precise generation settings/);
+  assert.match(html, /Random seed/);
+  assert.match(html, /Identity &amp; address overrides/);
+  assert.match(html, /100% local/);
+  assert.match(html, /software development, testing and education only/);
+  assert.match(html, /English/);
+  assert.match(html, /Español/);
+  assert.match(html, /Français/);
+  assert.match(html, /العربية/);
+  assert.match(html, /繁體中文/);
+  assert.match(html, /简体中文/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/);
 });
 
@@ -62,7 +83,8 @@ test("ships portable deployment configuration and social metadata", async () => 
   assert.match(wranglerConfig, /"binding": "ASSETS"/);
   assert.match(packageJson, /"build:cloudflare"/);
   assert.match(packageJson, /"build:vercel"/);
-  assert.match(page, /生成完整测试身份/);
+  assert.match(page, /generateCompleteIdentity/);
+  assert.doesNotMatch(page, /[一-龥]/);
   assert.match(globalData, /generateSyntheticIdentity/);
   assert.match(globalData, /IDENTITY_COUNTRIES/);
   assert.match(germanData, /calculateGermanTaxIdCheckDigit/);

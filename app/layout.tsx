@@ -4,9 +4,9 @@ import { GeistSans } from "geist/font/sans";
 import { PwaRegister } from "./pwa-register";
 import "./globals.css";
 
-const title = "IBAN DevTools — 完整跨国测试身份生成器";
+const title = "IBAN DevTools — Global Synthetic Identity Studio";
 const description =
-  "覆盖 250 个国家与地区，按参数生成完整合成测试身份、全球城市地址、保险、本地支付标识与合法校验码 IBAN。";
+  "Generate complete synthetic identities, global addresses, insurance, local payment identifiers and checksum-valid IBANs across 250 countries and territories.";
 
 const socialImage =
   "https://raw.githubusercontent.com/tianrking/iban-devtools/main/public/og.png";
@@ -65,7 +65,8 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="zh-CN"
+      lang="en"
+      dir="ltr"
       className={`${GeistSans.variable} ${GeistMono.variable}`}
     >
       <body className={GeistSans.className}>

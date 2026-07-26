@@ -1,4 +1,5 @@
 import { validateIban } from "@/lib/iban-core";
+import { COUNTRY_CATALOG_MAP } from "@/lib/country-catalog";
 
 export const runtime = "edge";
 
@@ -15,7 +16,21 @@ function response(iban: unknown) {
       { status: 400, headers: CORS_HEADERS },
     );
   }
-  return Response.json(validateIban(iban), {
+  const validation = validateIban(iban);
+  const catalogCountry = validation.country
+    ? COUNTRY_CATALOG_MAP.get(validation.country.code)
+    : undefined;
+  const stableValidation =
+    validation.country && catalogCountry
+      ? {
+          ...validation,
+          country: {
+            ...validation.country,
+            name: catalogCountry.englishName,
+          },
+        }
+      : validation;
+  return Response.json(stableValidation, {
     headers: { ...CORS_HEADERS, "Cache-Control": "no-store" },
   });
 }

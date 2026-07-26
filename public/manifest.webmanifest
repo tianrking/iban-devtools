@@ -6,7 +6,8 @@
   "display": "standalone",
   "background_color": "#f4f5f2",
   "theme_color": "#0b0e0d",
-  "lang": "zh-CN",
+  "lang": "en",
+  "dir": "ltr",
   "categories": ["developer", "utilities", "finance"],
   "icons": [
     {

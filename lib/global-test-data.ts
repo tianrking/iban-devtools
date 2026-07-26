@@ -148,7 +148,7 @@ export type SyntheticIdentity = {
 
 export const IDENTITY_COUNTRIES: IdentityCountrySpec[] = [
   {
-    code: "DE", name: "德国", flag: "🇩🇪",
+    code: "DE", name: "Germany", flag: "🇩🇪",
     maleNames: ["Felix", "Jonas", "Lukas", "Paul"], femaleNames: ["Anna", "Clara", "Hannah", "Sophie"],
     lastNames: ["Becker", "Fischer", "Hoffmann", "Neumann", "Schneider"],
     cities: [
@@ -160,7 +160,7 @@ export const IDENTITY_COUNTRIES: IdentityCountrySpec[] = [
     phonePrefix: "+49", emailDomain: "de.example", taxLabel: "Steuer-ID", insuranceLabel: "Krankenversicherungsnr.",
   },
   {
-    code: "FR", name: "法国", flag: "🇫🇷",
+    code: "FR", name: "France", flag: "🇫🇷",
     maleNames: ["Gabriel", "Hugo", "Louis", "Nathan"], femaleNames: ["Camille", "Chloé", "Emma", "Léa"],
     lastNames: ["Bernard", "Dubois", "Laurent", "Martin", "Petit"],
     cities: [
@@ -171,7 +171,7 @@ export const IDENTITY_COUNTRIES: IdentityCountrySpec[] = [
     phonePrefix: "+33", emailDomain: "fr.example", taxLabel: "Numéro fiscal", insuranceLabel: "NIR de test",
   },
   {
-    code: "GB", name: "英国", flag: "🇬🇧",
+    code: "GB", name: "United Kingdom", flag: "🇬🇧",
     maleNames: ["Arthur", "George", "Harry", "Oliver"], femaleNames: ["Amelia", "Charlotte", "Emily", "Olivia"],
     lastNames: ["Brown", "Evans", "Smith", "Taylor", "Wilson"],
     cities: [
@@ -182,7 +182,7 @@ export const IDENTITY_COUNTRIES: IdentityCountrySpec[] = [
     phonePrefix: "+44", emailDomain: "gb.example", taxLabel: "NINO test value", insuranceLabel: "NHS test reference",
   },
   {
-    code: "NL", name: "荷兰", flag: "🇳🇱",
+    code: "NL", name: "Netherlands", flag: "🇳🇱",
     maleNames: ["Daan", "Finn", "Lars", "Sem"], femaleNames: ["Emma", "Julia", "Sanne", "Tess"],
     lastNames: ["Bakker", "De Jong", "De Vries", "Jansen", "Visser"],
     cities: [
@@ -193,7 +193,7 @@ export const IDENTITY_COUNTRIES: IdentityCountrySpec[] = [
     phonePrefix: "+31", emailDomain: "nl.example", taxLabel: "BSN test value", insuranceLabel: "Zorgverzekering testnummer",
   },
   {
-    code: "ES", name: "西班牙", flag: "🇪🇸",
+    code: "ES", name: "Spain", flag: "🇪🇸",
     maleNames: ["Alejandro", "Daniel", "Hugo", "Pablo"], femaleNames: ["Carmen", "Lucía", "Marta", "Sofía"],
     lastNames: ["Fernández", "García", "López", "Martínez", "Sánchez"],
     cities: [
@@ -204,7 +204,7 @@ export const IDENTITY_COUNTRIES: IdentityCountrySpec[] = [
     phonePrefix: "+34", emailDomain: "es.example", taxLabel: "NIF", insuranceLabel: "Seguridad Social test",
   },
   {
-    code: "IT", name: "意大利", flag: "🇮🇹",
+    code: "IT", name: "Italy", flag: "🇮🇹",
     maleNames: ["Alessandro", "Lorenzo", "Luca", "Matteo"], femaleNames: ["Chiara", "Giulia", "Sara", "Sofia"],
     lastNames: ["Bianchi", "Colombo", "Ferrari", "Ricci", "Romano"],
     cities: [
@@ -215,7 +215,7 @@ export const IDENTITY_COUNTRIES: IdentityCountrySpec[] = [
     phonePrefix: "+39", emailDomain: "it.example", taxLabel: "Codice fiscale test", insuranceLabel: "Tessera sanitaria test",
   },
   {
-    code: "CH", name: "瑞士", flag: "🇨🇭",
+    code: "CH", name: "Switzerland", flag: "🇨🇭",
     maleNames: ["David", "Jan", "Luca", "Noah"], femaleNames: ["Anna", "Lea", "Lena", "Nina"],
     lastNames: ["Brunner", "Frei", "Keller", "Meier", "Müller"],
     cities: [
@@ -226,7 +226,7 @@ export const IDENTITY_COUNTRIES: IdentityCountrySpec[] = [
     phonePrefix: "+41", emailDomain: "ch.example", taxLabel: "AHV test value", insuranceLabel: "Krankenkasse testnummer",
   },
   {
-    code: "BE", name: "比利时", flag: "🇧🇪",
+    code: "BE", name: "Belgium", flag: "🇧🇪",
     maleNames: ["Arthur", "Louis", "Lucas", "Victor"], femaleNames: ["Emma", "Louise", "Marie", "Noor"],
     lastNames: ["Dubois", "Jacobs", "Peeters", "Simon", "Willems"],
     cities: [
@@ -237,7 +237,7 @@ export const IDENTITY_COUNTRIES: IdentityCountrySpec[] = [
     phonePrefix: "+32", emailDomain: "be.example", taxLabel: "Numéro national test", insuranceLabel: "Mutualité testnummer",
   },
   {
-    code: "AT", name: "奥地利", flag: "🇦🇹",
+    code: "AT", name: "Austria", flag: "🇦🇹",
     maleNames: ["David", "Felix", "Jakob", "Lukas"], femaleNames: ["Anna", "Julia", "Laura", "Sophie"],
     lastNames: ["Bauer", "Gruber", "Hofer", "Huber", "Wagner"],
     cities: [
@@ -248,7 +248,7 @@ export const IDENTITY_COUNTRIES: IdentityCountrySpec[] = [
     phonePrefix: "+43", emailDomain: "at.example", taxLabel: "Steuernummer test", insuranceLabel: "Sozialversicherungsnr. test",
   },
   {
-    code: "IE", name: "爱尔兰", flag: "🇮🇪",
+    code: "IE", name: "Ireland", flag: "🇮🇪",
     maleNames: ["Cian", "Conor", "James", "Seán"], femaleNames: ["Aoife", "Emily", "Niamh", "Saoirse"],
     lastNames: ["Byrne", "Doyle", "Kelly", "Murphy", "Ryan"],
     cities: [
@@ -259,7 +259,7 @@ export const IDENTITY_COUNTRIES: IdentityCountrySpec[] = [
     phonePrefix: "+353", emailDomain: "ie.example", taxLabel: "PPSN test value", insuranceLabel: "Health service test ID",
   },
   {
-    code: "PL", name: "波兰", flag: "🇵🇱",
+    code: "PL", name: "Poland", flag: "🇵🇱",
     maleNames: ["Jakub", "Jan", "Kacper", "Michał"], femaleNames: ["Anna", "Julia", "Maja", "Zofia"],
     lastNames: ["Kowalski", "Lewandowski", "Nowak", "Wójcik", "Zieliński"],
     cities: [
@@ -270,7 +270,7 @@ export const IDENTITY_COUNTRIES: IdentityCountrySpec[] = [
     phonePrefix: "+48", emailDomain: "pl.example", taxLabel: "PESEL test value", insuranceLabel: "NFZ test reference",
   },
   {
-    code: "PT", name: "葡萄牙", flag: "🇵🇹",
+    code: "PT", name: "Portugal", flag: "🇵🇹",
     maleNames: ["Afonso", "João", "Miguel", "Tiago"], femaleNames: ["Ana", "Beatriz", "Inês", "Mariana"],
     lastNames: ["Costa", "Ferreira", "Oliveira", "Pereira", "Silva"],
     cities: [
@@ -281,7 +281,7 @@ export const IDENTITY_COUNTRIES: IdentityCountrySpec[] = [
     phonePrefix: "+351", emailDomain: "pt.example", taxLabel: "NIF", insuranceLabel: "SNS test number",
   },
   {
-    code: "NO", name: "挪威", flag: "🇳🇴",
+    code: "NO", name: "Norway", flag: "🇳🇴",
     maleNames: ["Emil", "Henrik", "Magnus", "Oliver"], femaleNames: ["Emma", "Ingrid", "Nora", "Sofie"],
     lastNames: ["Andersen", "Hansen", "Johansen", "Larsen", "Nilsen"],
     cities: [
@@ -292,7 +292,7 @@ export const IDENTITY_COUNTRIES: IdentityCountrySpec[] = [
     phonePrefix: "+47", emailDomain: "no.example", taxLabel: "Fødselsnummer test", insuranceLabel: "Helse test-ID",
   },
   {
-    code: "FI", name: "芬兰", flag: "🇫🇮",
+    code: "FI", name: "Finland", flag: "🇫🇮",
     maleNames: ["Elias", "Leo", "Onni", "Ville"], femaleNames: ["Aino", "Ella", "Emilia", "Sofia"],
     lastNames: ["Heikkinen", "Korhonen", "Laine", "Nieminen", "Virtanen"],
     cities: [
@@ -303,7 +303,7 @@ export const IDENTITY_COUNTRIES: IdentityCountrySpec[] = [
     phonePrefix: "+358", emailDomain: "fi.example", taxLabel: "Henkilötunnus test", insuranceLabel: "Kela test reference",
   },
   {
-    code: "LU", name: "卢森堡", flag: "🇱🇺",
+    code: "LU", name: "Luxembourg", flag: "🇱🇺",
     maleNames: ["Ben", "Léo", "Luc", "Tom"], femaleNames: ["Emma", "Julie", "Lara", "Sophie"],
     lastNames: ["Hoffmann", "Muller", "Schmit", "Thill", "Weber"],
     cities: [
@@ -323,7 +323,7 @@ export const DEFAULT_SYNTHETIC_IDENTITY: SyntheticIdentity = {
     seed: "default",
     quality: "synthetic-test-data",
   },
-  country: { code: "DE", name: "德国", flag: "🇩🇪" },
+  country: { code: "DE", name: "Germany", flag: "🇩🇪" },
   personal: {
     firstName: "Klara",
     lastName: "Neumann",

@@ -222,14 +222,14 @@ test("world index and all 250 compact country files are exactly consistent", asy
 
 test("standard display names and official ISO 4217 data correct known source errors", () => {
   const expectations = {
-    AQ: ["南极洲", "XXX"],
-    CG: ["刚果（布）", "XAF"],
-    CW: ["库拉索", "XCG"],
-    MF: ["法属圣马丁", "EUR"],
-    SL: ["塞拉利昂", "SLE"],
-    SX: ["荷属圣马丁", "XCG"],
-    VG: ["英属维尔京群岛", "USD"],
-    ZW: ["津巴布韦", "ZWG"],
+    AQ: ["Antarctica", "XXX"],
+    CG: ["Congo", "XAF"],
+    CW: ["Curaçao", "XCG"],
+    MF: ["Saint-Martin (French part)", "EUR"],
+    SL: ["Sierra Leone", "SLE"],
+    SX: ["Sint Maarten (Dutch part)", "XCG"],
+    VG: ["Virgin Islands (British)", "USD"],
+    ZW: ["Zimbabwe", "ZWG"],
   };
   for (const [code, [name, currency]] of Object.entries(expectations)) {
     const country = COUNTRY_CATALOG_MAP.get(code);

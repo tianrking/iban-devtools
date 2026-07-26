@@ -45,6 +45,19 @@ import {
   exportProfiles,
   type ExportFormat,
 } from "@/lib/exporters";
+import {
+  createTranslator,
+  DEFAULT_LOCALE,
+  displayCountryName,
+  formatLocaleNumber,
+  isAppLocale,
+  localeDirection,
+  LOCALE_OPTIONS,
+  LOCALE_STORAGE_KEY,
+  resolveAppLocale,
+  type AppLocale,
+  type MessageKey,
+} from "@/lib/i18n";
 import type {
   BatchWorkerRequest,
   BatchWorkerResponse,
@@ -54,54 +67,83 @@ const COUNTRIES = COUNTRY_CATALOG;
 const COUNTRY_MAP = COUNTRY_CATALOG_MAP;
 const DEFAULT_IBAN = "DE89370400440532013000";
 const COUNTRY_SCOPES = [
-  ["all", "全部地区"],
-  ["sepa", "SEPA"],
-  ["Europe", "欧洲"],
-  ["Asia", "亚洲"],
-  ["Africa", "非洲"],
-  ["Americas", "美洲"],
-  ["Oceania", "大洋洲"],
-  ["Polar", "极地"],
-  ["Other", "其他区域"],
+  ["all", "regionAll"],
+  ["sepa", "scenarioSepa"],
+  ["Europe", "regionEurope"],
+  ["Asia", "regionAsia"],
+  ["Africa", "regionAfrica"],
+  ["Americas", "regionAmericas"],
+  ["Oceania", "regionOceania"],
+  ["Polar", "regionPolar"],
+  ["Other", "regionOther"],
 ] as const;
 type CountryScope = (typeof COUNTRY_SCOPES)[number][0];
 const GENDER_OPTIONS = [
-  ["random", "随机"],
-  ["female", "女性"],
-  ["male", "男性"],
+  ["random", "random"],
+  ["female", "female"],
+  ["male", "male"],
 ] as const;
 const AGE_MODES = [
-  ["random", "随机"],
-  ["exact", "指定"],
-  ["range", "区间"],
+  ["random", "random"],
+  ["exact", "exact"],
+  ["range", "range"],
 ] as const;
-const SCENARIOS: Array<{ value: IdentityScenario; label: string; hint: string }> = [
-  { value: "complete", label: "完整身份", hint: "全字段" },
-  { value: "kyc", label: "KYC", hint: "证件与风控" },
-  { value: "payments", label: "支付", hint: "账户与汇款" },
-  { value: "payroll", label: "薪资", hint: "税务与雇佣" },
-  { value: "ecommerce", label: "电商", hint: "配送与支付" },
-  { value: "sepa", label: "SEPA", hint: "SCT 测试" },
-  { value: "api-boundary", label: "边界值", hint: "异常输入" },
-  { value: "database", label: "数据库", hint: "批量种子" },
+const SCENARIOS: Array<{
+  value: IdentityScenario;
+  labelKey: MessageKey;
+  hintKey: MessageKey;
+}> = [
+  { value: "complete", labelKey: "scenarioComplete", hintKey: "scenarioCompleteHint" },
+  { value: "kyc", labelKey: "scenarioKyc", hintKey: "scenarioKycHint" },
+  { value: "payments", labelKey: "scenarioPayments", hintKey: "scenarioPaymentsHint" },
+  { value: "payroll", labelKey: "scenarioPayroll", hintKey: "scenarioPayrollHint" },
+  { value: "ecommerce", labelKey: "scenarioEcommerce", hintKey: "scenarioEcommerceHint" },
+  { value: "sepa", labelKey: "scenarioSepa", hintKey: "scenarioSepaHint" },
+  { value: "api-boundary", labelKey: "scenarioBoundary", hintKey: "scenarioBoundaryHint" },
+  { value: "database", labelKey: "scenarioDatabase", hintKey: "scenarioDatabaseHint" },
 ];
-const CASE_MODES: Array<{ value: IbanCaseMode; label: string }> = [
-  { value: "valid", label: "合法 IBAN" },
-  { value: "bad-checksum", label: "错误校验码" },
-  { value: "wrong-length", label: "错误长度" },
-  { value: "illegal-character", label: "非法字符" },
-  { value: "bad-bban", label: "错误 BBAN" },
-  { value: "lowercase", label: "小写兼容" },
-  { value: "hyphenated", label: "连字符兼容" },
+const CASE_MODES: Array<{ value: IbanCaseMode; labelKey: MessageKey }> = [
+  { value: "valid", labelKey: "caseValidIban" },
+  { value: "bad-checksum", labelKey: "caseBadChecksum" },
+  { value: "wrong-length", labelKey: "caseWrongLength" },
+  { value: "illegal-character", labelKey: "caseIllegalCharacter" },
+  { value: "bad-bban", labelKey: "caseBadBban" },
+  { value: "lowercase", labelKey: "caseLowercase" },
+  { value: "hyphenated", labelKey: "caseHyphenated" },
 ];
-const VALIDATION_REASONS: Record<string, string> = {
-  REGISTRY_FORMAT_AND_MOD97_VALID: "国家结构与 MOD-97 校验均通过",
-  ILLEGAL_CHARACTERS: "包含 IBAN 不允许的字符",
-  UNREGISTERED_COUNTRY: "国家代码不在当前 SWIFT 注册表中",
-  INVALID_LENGTH: "长度不符合该国家规范",
-  INVALID_BBAN_STRUCTURE: "BBAN 结构不符合该国家规范",
-  INVALID_CHECKSUM: "MOD-97 校验码不正确",
-  INVALID_IBAN: "IBAN 无效",
+const VALIDATION_REASONS: Record<string, MessageKey> = {
+  REGISTRY_FORMAT_AND_MOD97_VALID: "validationRegistryValid",
+  ILLEGAL_CHARACTERS: "validationIllegalCharacters",
+  UNREGISTERED_COUNTRY: "validationUnregisteredCountry",
+  INVALID_LENGTH: "validationInvalidLength",
+  INVALID_BBAN_STRUCTURE: "validationInvalidBban",
+  INVALID_CHECKSUM: "validationInvalidChecksum",
+  INVALID_IBAN: "validationInvalidIban",
+};
+const RISK_LABELS: Record<string, MessageKey> = {
+  low: "riskLow",
+  medium: "riskMedium",
+  high: "riskHigh",
+};
+const VOP_LABELS: Record<string, MessageKey> = {
+  match: "vopMatch",
+  "close-match": "vopCloseMatch",
+  "no-match": "vopNoMatch",
+  unavailable: "vopUnavailable",
+};
+const EXPORT_DESCRIPTION_KEYS: Record<ExportFormat, MessageKey> = {
+  json: "exportJsonDescription",
+  ndjson: "exportNdjsonDescription",
+  csv: "exportCsvDescription",
+  typescript: "exportTypescriptDescription",
+  zod: "exportZodDescription",
+  "json-schema": "exportJsonSchemaDescription",
+  playwright: "exportPlaywrightDescription",
+  cypress: "exportCypressDescription",
+  postman: "exportPostmanDescription",
+  env: "exportEnvDescription",
+  sql: "exportSqlDescription",
+  python: "exportPythonDescription",
 };
 
 type QuickPreset = {
@@ -124,7 +166,13 @@ function downloadFile(content: string, filename: string, type: string) {
   URL.revokeObjectURL(url);
 }
 
+function bidiIsolate(value: string) {
+  return `\u2068${value}\u2069`;
+}
+
 export default function Home() {
+  const [locale, setLocale] = useState<AppLocale>(DEFAULT_LOCALE);
+  const [localeReady, setLocaleReady] = useState(false);
   const [tab, setTab] = useState<"generate" | "validate">("generate");
   const [generateMode, setGenerateMode] = useState<"single" | "batch">("single");
   const [countryCode, setCountryCode] = useState("DE");
@@ -164,11 +212,13 @@ export default function Home() {
   const [toast, setToast] = useState("");
   const [geoData, setGeoData] = useState<CountryGeoData | null>(null);
   const [geoLoading, setGeoLoading] = useState(false);
-  const [geoError, setGeoError] = useState("");
+  const [geoError, setGeoError] = useState(false);
   const batchWorkerRef = useRef<Worker | null>(null);
   const batchConfigurationRef = useRef("");
   const commandDialogRef = useRef<HTMLDivElement | null>(null);
   const commandTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const t = useMemo(() => createTranslator(locale), [locale]);
+  const number = (value: number) => formatLocaleNumber(value, locale);
 
   const batchConfigurationSignature = JSON.stringify([
     generateMode,
@@ -193,8 +243,16 @@ export default function Home() {
     postalCodeOverride,
   ]);
   const country = COUNTRY_MAP.get(countryCode) ?? COUNTRIES[0];
+  const countryName = displayCountryName(
+    country.code,
+    locale,
+    country.englishName,
+  );
   const caseModeOptions = country.ibanSpec
-    ? CASE_MODES
+    ? CASE_MODES.map((item) => ({
+        ...item,
+        label: t(item.labelKey),
+      }))
     : CASE_MODES
         .filter(
           (item) =>
@@ -207,8 +265,8 @@ export default function Home() {
               ...item,
               label:
                 country.payment.validation === "checksum"
-                  ? "校验通过"
-                  : "格式测试值",
+                  ? t("caseValidChecksum")
+                  : t("caseFormatFixture"),
             };
           }
           if (item.value === "bad-checksum") {
@@ -216,14 +274,14 @@ export default function Home() {
               ...item,
               label:
                 country.payment.validation === "checksum"
-                  ? "错误校验码"
-                  : "格式破坏（非法字符）",
+                  ? t("caseBadChecksum")
+                  : t("caseBrokenFormat"),
             };
           }
           if (item.value === "bad-bban") {
-            return { ...item, label: "错误路由 / 账户结构" };
+            return { ...item, label: t("caseBadRouting") };
           }
-          return item;
+          return { ...item, label: t(item.labelKey) };
         });
   const filteredCountries = useMemo(() => {
     const query = countryQuery.trim().toLowerCase();
@@ -237,6 +295,9 @@ export default function Home() {
         inScope &&
         (!query ||
           item.code.toLowerCase().includes(query) ||
+          displayCountryName(item.code, locale, item.englishName)
+            .toLocaleLowerCase(locale)
+            .includes(query) ||
           item.name.toLowerCase().includes(query) ||
           item.englishName.toLowerCase().includes(query) ||
           item.nativeName.toLowerCase().includes(query) ||
@@ -245,7 +306,7 @@ export default function Home() {
           ))
       );
     });
-  }, [countryQuery, countryScope]);
+  }, [countryQuery, countryScope, locale]);
   const identityCountry = getIdentityCountry(countryCode);
   const regionOptions = useMemo(
     () => {
@@ -273,7 +334,7 @@ export default function Home() {
   );
   const regionChoiceLabel =
     regionChoice === "random"
-      ? "全地区"
+      ? t("allRegions")
       : regionOptions.find((region) => region.value === regionChoice)?.label ??
         regionChoice;
   const availableCities = useMemo(
@@ -323,8 +384,8 @@ export default function Home() {
     {
       id: "kyc",
       icon: "ID",
-      title: "KYC 身份核验",
-      description: `${country.code} · 单条完整身份`,
+      title: t("presetKycTitle"),
+      description: t("presetSingleComplete", { country: country.code }),
       scenario: "kyc",
       caseMode: "valid",
       count: 1,
@@ -332,10 +393,12 @@ export default function Home() {
     {
       id: "payment-regression",
       icon: "↔",
-      title: country.ibanSpec?.sepa ? "SEPA 支付回归" : "本地支付回归",
-      description: `${
-        country.ibanSpec?.sepa ? "EUR" : currencyChoice
-      } · 10 条合法账户`,
+      title: country.ibanSpec?.sepa
+        ? t("presetSepaRegression")
+        : t("presetLocalRegression"),
+      description: t("presetValidAccounts", {
+        currency: country.ibanSpec?.sepa ? "EUR" : currencyChoice,
+      }),
       scenario: country.ibanSpec?.sepa ? "sepa" : "payments",
       caseMode: "valid",
       count: 10,
@@ -343,9 +406,11 @@ export default function Home() {
     {
       id: "payment-failure",
       icon: "×",
-      title: "支付失败用例",
+      title: t("presetFailureTitle"),
       description: `${country.code} · ${
-        country.payment.validation === "checksum" ? "错误校验码" : "格式负例"
+        country.payment.validation === "checksum"
+          ? t("presetBadChecksum")
+          : t("presetNegativeFormat")
       }`,
       scenario: "payments",
       caseMode:
@@ -357,8 +422,8 @@ export default function Home() {
     {
       id: "database",
       icon: "DB",
-      title: "数据库测试种子",
-      description: `${country.code} · 100 条可导出`,
+      title: t("presetDatabaseTitle"),
+      description: t("presetExportable", { country: country.code }),
       scenario: "database",
       caseMode: "valid",
       count: 100,
@@ -378,8 +443,42 @@ export default function Home() {
         : null,
     [activeProfile.banking.iban],
   );
-  const selectedExportMetadata = exportFileMetadata(exportFormat);
   const visibleProfiles = profiles.slice(batchPage * 25, batchPage * 25 + 25);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sharedLocale = params.get("lang");
+    let savedLocale: string | null = null;
+    try {
+      savedLocale = localStorage.getItem(LOCALE_STORAGE_KEY);
+    } catch {
+      savedLocale = null;
+    }
+    const resolvedLocale = resolveAppLocale(sharedLocale, savedLocale);
+    const timer = window.setTimeout(() => {
+      setLocale(resolvedLocale);
+      setLocaleReady(true);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!localeReady) return;
+    const direction = localeDirection(locale);
+    document.documentElement.lang = locale;
+    document.documentElement.dir = direction;
+    document.documentElement.dataset.locale = locale;
+    document.title = t("appTitle");
+    const description = document.querySelector<HTMLMetaElement>(
+      'meta[name="description"]',
+    );
+    description?.setAttribute("content", t("appDescription"));
+    try {
+      localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+    } catch {
+      // The language still works when storage is unavailable.
+    }
+  }, [locale, localeReady, t]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -406,7 +505,7 @@ export default function Home() {
     Promise.resolve()
       .then(() => {
         setGeoLoading(true);
-        setGeoError("");
+        setGeoError(false);
         return fetch(country.geoDataPath!, { signal: controller.signal });
       })
       .then((response) => {
@@ -420,7 +519,7 @@ export default function Home() {
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError") return;
         setGeoData(null);
-        setGeoError("城市目录加载失败，可继续使用随机测试地区");
+        setGeoError(true);
         setGeoLoading(false);
       });
     return () => controller.abort();
@@ -600,12 +699,19 @@ export default function Home() {
     window.setTimeout(() => setToast(""), 1800);
   };
 
-  const copyText = async (text: string, message = "已复制到剪贴板") => {
+  const changeLocale = (nextLocale: AppLocale) => {
+    setLocale(nextLocale);
+    const url = new URL(window.location.href);
+    url.searchParams.set("lang", nextLocale);
+    window.history.replaceState(null, "", url);
+  };
+
+  const copyText = async (text: string, message = t("copied")) => {
     try {
       await navigator.clipboard.writeText(text);
       showToast(message);
     } catch {
-      showToast("复制失败，请手动选择文本");
+      showToast(t("copyFailed"));
     }
   };
 
@@ -675,9 +781,10 @@ export default function Home() {
         caseMode,
         batchCount: 1,
         seed,
+        locale,
       }),
     );
-    showToast("完整测试身份已生成");
+    showToast(t("identityGenerated"));
   };
 
   const changeCountry = (code: string) => {
@@ -727,10 +834,16 @@ export default function Home() {
           caseMode,
           batchCount,
           seed,
+          locale,
         }),
       );
+      const timing =
+        elapsedMs === undefined ? "" : ` · ${elapsedMs.toFixed(1)}ms`;
       showToast(
-        `已生成 ${batchCount} 条完整测试身份${elapsedMs === undefined ? "" : ` · ${elapsedMs.toFixed(1)}ms`}`,
+        t("batchGenerated", {
+          count: number(batchCount),
+          timing,
+        }),
       );
     };
     const fallback = () => {
@@ -824,7 +937,7 @@ export default function Home() {
       `synthetic-identities-${country.code.toLowerCase()}.${metadata.extension}`,
       metadata.mime,
     );
-    showToast(`${metadata.label} 已导出`);
+    showToast(t("exported", { format: metadata.label }));
   };
 
   const shareConfiguration = async () => {
@@ -835,8 +948,9 @@ export default function Home() {
       scenario,
       case: caseMode,
       seed,
+      lang: locale,
     }).toString();
-    await copyText(url.toString(), "可复现配置链接已复制");
+    await copyText(url.toString(), t("sharedLinkCopied"));
   };
 
   const applyPreset = (preset: QuickPreset) => {
@@ -851,7 +965,12 @@ export default function Home() {
         caseMode: preset.caseMode,
       }),
     ]);
-    showToast(`${country.code} · ${preset.title} 已应用`);
+    showToast(
+      t("presetApplied", {
+        country: country.code,
+        preset: preset.title,
+      }),
+    );
   };
 
   const restoreLastConfiguration = () => {
@@ -865,6 +984,7 @@ export default function Home() {
         caseMode?: IbanCaseMode;
         batchCount?: number;
         seed?: string;
+        locale?: AppLocale;
       };
       if (saved.countryCode && COUNTRY_MAP.has(saved.countryCode)) {
         changeCountry(saved.countryCode);
@@ -874,6 +994,7 @@ export default function Home() {
         setBatchCount(saved.batchCount);
         setGenerateMode(saved.batchCount > 1 ? "batch" : "single");
       }
+      if (isAppLocale(saved.locale)) changeLocale(saved.locale);
       setSeed(saved.seed ?? "");
       const restoredCountryCode =
         saved.countryCode && COUNTRY_MAP.has(saved.countryCode)
@@ -911,9 +1032,9 @@ export default function Home() {
         }),
       ]);
       setBatchPage(0);
-      showToast("上次生成配置已恢复");
+      showToast(t("restored"));
     } catch {
-      showToast("没有可恢复的本地配置");
+      showToast(t("nothingToRestore"));
     }
   };
 
@@ -954,7 +1075,7 @@ export default function Home() {
       }),
     ]);
     setBatchPage(0);
-    showToast(`${country.code} 参数已重置`);
+    showToast(t("resetDone", { country: country.code }));
   };
 
   const renderSegments = (value: string, spec: IbanCountrySpec) => {
@@ -982,7 +1103,12 @@ export default function Home() {
     const accountValue = bban.slice(spec.accountStart, spec.accountStart + spec.accountLen);
     const after = bban.slice(spec.accountStart + spec.accountLen);
     return (
-      <div className="segment-value" role="group" aria-label="IBAN 结构拆解">
+      <div
+        className="segment-value"
+        role="group"
+        aria-label={t("ibanBreakdown")}
+        dir="ltr"
+      >
         <span className="segment-country">{compact.slice(0, 2)}</span>
         <span className="segment-check">{compact.slice(2, 4)}</span>
         {beforeBank && <span className="segment-extra">{beforeBank}</span>}
@@ -997,56 +1123,77 @@ export default function Home() {
   };
 
   return (
-    <main>
+    <main lang={locale} dir={localeDirection(locale)}>
       <header className="site-header">
-        <a className="brand" href="#" aria-label="IBAN DevTools 首页">
+        <a className="brand" href="#" aria-label={t("brandHome")}>
           <span className="brand-mark">IB</span>
           <span>IBAN <b>DevTools</b></span>
           <span className="version-badge">v2.0</span>
         </a>
         <div className="header-meta">
-          <span className="local-badge"><i /> 100% 本地运行</span>
+          <span className="local-badge"><i /> {t("localOnly")}</span>
           <span className="standard-mark"><b>ISO</b> 13616</span>
+          <label className="language-select">
+            <span className="sr-only">{t("language")}</span>
+            <select
+              aria-label={t("language")}
+              value={locale}
+              onChange={(event) =>
+                changeLocale(event.target.value as AppLocale)
+              }
+            >
+              {LOCALE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <b aria-hidden="true">
+              {LOCALE_OPTIONS.find((option) => option.value === locale)
+                ?.shortLabel ?? "EN"}
+            </b>
+            <i aria-hidden="true">⌄</i>
+          </label>
           <button
             ref={commandTriggerRef}
             className="header-command"
             type="button"
             onClick={() => setCommandOpen(true)}
           >
-            命令 <kbd>⌘K</kbd>
+            {t("command")} <kbd>⌘K</kbd>
           </button>
-          <button className="header-command" type="button" onClick={() => setTheme(theme === "light" ? "dark" : "light")}>{theme === "light" ? "深色" : "浅色"}</button>
-          <a className="header-link" href="#tool">开始使用 <span>↓</span></a>
+          <button className="header-command" type="button" onClick={() => setTheme(theme === "light" ? "dark" : "light")}>{theme === "light" ? t("darkTheme") : t("lightTheme")}</button>
+          <a className="header-link" href="#tool">{t("getStarted")} <span>↓</span></a>
         </div>
       </header>
 
       <section className="intro">
         <div>
-          <p className="eyebrow">COMPLETE SYNTHETIC IDENTITY · IBAN</p>
-          <h1>一个身份，<em>所有测试数据。</em></h1>
-          <p className="lede">选择国家或地区、行政区、城市、性别与年龄，一次生成本地化身份、地址、税务与保险测试字段，以及 IBAN、ABA、加拿大路由、CLABE 或 CBU 等对应银行数据。</p>
-          <div className="platform-row" role="group" aria-label="支持的部署平台">
-            <span className="platform-label">DEPLOY ANYWHERE</span>
+          <p className="eyebrow">{t("heroEyebrow")}</p>
+          <h1>{t("heroLead")} <em>{t("heroEmphasis")}</em></h1>
+          <p className="lede">{t("heroDescription")}</p>
+          <div className="platform-row" role="group" aria-label={t("supportedPlatforms")}>
+            <span className="platform-label">{t("deployAnywhere")}</span>
             <span className="platform-chip vercel-chip"><b>▲</b> Vercel</span>
             <span className="platform-chip cloudflare-chip"><b>☁</b> Cloudflare</span>
-            <span className="platform-chip"><b>◇</b> Open Source</span>
+            <span className="platform-chip"><b>◇</b> {t("openSource")}</span>
           </div>
         </div>
-        <div className="intro-stat" role="group" aria-label="性能指标">
-          <span>COUNTRIES / AREAS</span>
-          <strong>{COUNTRIES.length}</strong>
+        <div className="intro-stat" role="group" aria-label={t("performanceMetrics")}>
+          <span>{t("countriesAreas")}</span>
+          <strong>{number(COUNTRIES.length)}</strong>
           <small>
-            {IBAN_COUNTRIES.length} IBAN · {WORLD_GEO_COUNTS.cities.toLocaleString()} cities
+            {number(IBAN_COUNTRIES.length)} IBAN · {number(WORLD_GEO_COUNTS.cities)} {t("cities")}
           </small>
         </div>
       </section>
 
-      <nav className="main-tabs" id="tool" aria-label="工具模式">
+      <nav className="main-tabs" id="tool" aria-label={t("toolModes")}>
         <button className={tab === "generate" ? "active" : ""} onClick={() => setTab("generate")}>
-          <span>01</span> 生成器
+          <span>01</span> {t("generator")}
         </button>
         <button className={tab === "validate" ? "active" : ""} onClick={() => setTab("validate")}>
-          <span>02</span> 校验与解析
+          <span>02</span> {t("validator")}
         </button>
       </nav>
 
@@ -1055,28 +1202,28 @@ export default function Home() {
           <aside className="config-panel">
             <div className="panel-heading">
               <div>
-                <span className="step">PARAMETER STUDIO</span>
-                <h2>精确生成配置</h2>
+                <span className="step">{t("parameterStudio")}</span>
+                <h2>{t("preciseConfiguration")}</h2>
               </div>
-              <span className="config-status">7 GROUPS</span>
+              <span className="config-status">7 {t("groups")}</span>
             </div>
 
             <div className="config-summary">
               <span>{country.flag} {country.code}</span>
               <span>{regionChoiceLabel}</span>
-              <span>{genderChoice === "random" ? "随机性别" : genderChoice === "female" ? "女性" : "男性"}</span>
+              <span>{genderChoice === "random" ? t("randomGender") : genderChoice === "female" ? t("female") : t("male")}</span>
               <span>
-                {currencyChoice} · {generateMode === "single" ? "1 条" : `${batchCount} 条`}
+                {currencyChoice} · {number(generateMode === "single" ? 1 : batchCount)} {generateMode === "single" ? t("item") : t("items")}
               </span>
             </div>
 
             <section className="quick-start" aria-labelledby="quick-start-title">
               <div className="quick-start-heading">
                 <div>
-                  <span>QUICK START</span>
-                  <strong id="quick-start-title">当前国家快捷场景</strong>
+                  <span>{t("quickStart")}</span>
+                  <strong id="quick-start-title">{t("quickStartTitle")}</strong>
                 </div>
-                <small>{country.flag} {country.name} · 不会切换国家</small>
+                <small>{country.flag} {countryName} · {t("keepsCountry")}</small>
               </div>
               <div className="preset-strip">
                 {quickPresets.map((preset) => (
@@ -1092,41 +1239,41 @@ export default function Home() {
                       <strong>{preset.title}</strong>
                       <small>{preset.description}</small>
                     </span>
-                    <em>{activePresetId === preset.id ? "已选择" : "应用"}</em>
+                    <em>{activePresetId === preset.id ? t("selected") : t("apply")}</em>
                   </button>
                 ))}
               </div>
-              <div className="configuration-tools" aria-label="配置管理">
-                <button type="button" onClick={restoreLastConfiguration}><span>↶</span> 恢复上次</button>
-                <button type="button" onClick={resetConfiguration}><span>○</span> 重置参数</button>
+              <div className="configuration-tools" aria-label={t("configurationManagement")}>
+                <button type="button" onClick={restoreLastConfiguration}><span className="rtl-mirror">↶</span> {t("restoreLast")}</button>
+                <button type="button" onClick={resetConfiguration}><span>○</span> {t("resetParameters")}</button>
               </div>
             </section>
 
             <section className="config-group">
               <div className="config-group-title">
                 <span>01</span>
-                <div><strong>地域参数</strong><small>决定身份、地址与本国支付规范</small></div>
+                <div><strong>{t("geographyTitle")}</strong><small>{t("geographyHint")}</small></div>
               </div>
 
               <div className="field">
-                <label htmlFor="country">国家 / 地区</label>
+                <label htmlFor="country">{t("countryRegion")}</label>
                 <div className="country-discovery">
                   <input
-                    aria-label="搜索国家"
+                    aria-label={t("searchCountry")}
                     value={countryQuery}
-                    placeholder="搜索国家、代码或币种"
+                    placeholder={t("searchCountryPlaceholder")}
                     onChange={(event) => setCountryQuery(event.target.value)}
                   />
                   <div className="select-wrap country-scope-select">
                     <select
-                      aria-label="按全球区域筛选"
+                      aria-label={t("filterWorldRegion")}
                       value={countryScope}
                       onChange={(event) =>
                         setCountryScope(event.target.value as CountryScope)
                       }
                     >
                       {COUNTRY_SCOPES.map(([value, label]) => (
-                        <option key={value} value={value}>{label}</option>
+                        <option key={value} value={value}>{t(label)}</option>
                       ))}
                     </select>
                     <span>⌄</span>
@@ -1135,11 +1282,11 @@ export default function Home() {
                 <div className="select-wrap">
                   <select id="country" value={countryCode} onChange={(event) => changeCountry(event.target.value)}>
                     {!filteredCountries.some((item) => item.code === country.code) && (
-                      <option value={country.code}>{country.flag} {country.name} — {country.code}</option>
+                      <option value={country.code}>{country.flag} {countryName} — {bidiIsolate(country.code)}</option>
                     )}
                     {filteredCountries.map((item) => (
                       <option key={item.code} value={item.code}>
-                        {item.flag} {item.name} — {item.code} · {item.currency}
+                        {item.flag} {displayCountryName(item.code, locale, item.englishName)} — {bidiIsolate(`${item.code} · ${item.currency}`)}
                       </option>
                     ))}
                   </select>
@@ -1147,15 +1294,15 @@ export default function Home() {
                 </div>
                 <small>
                   {country.currencies.join(" / ")} · {country.ibanSpec
-                    ? `${country.ibanSpec.length} 位 IBAN${country.ibanSpec.sepa ? " · SEPA" : ""}`
-                    : `${country.payment.label} · 非 IBAN 国家`}
-                  {" · "}{filteredCountries.length} 个匹配
+                    ? `${t("ibanLength", { count: number(country.ibanSpec.length) })}${country.ibanSpec.sepa ? " · SEPA" : ""}`
+                    : t("nonIbanCountry", { label: country.payment.label })}
+                  {" · "}{t("matches", { count: number(filteredCountries.length) })}
                 </small>
               </div>
 
               {country.currencies.length > 1 && (
                 <div className="field">
-                  <label htmlFor="identity-currency">测试结算币种</label>
+                  <label htmlFor="identity-currency">{t("settlementCurrency")}</label>
                   <div className="select-wrap">
                     <select
                       id="identity-currency"
@@ -1170,13 +1317,13 @@ export default function Home() {
                     </select>
                     <span>⌄</span>
                   </div>
-                  <small>SIX ISO 4217 · 该市场支持多个流通币种</small>
+                  <small>{t("multipleCurrencies")}</small>
                 </div>
               )}
 
               <div className="two-column-fields">
                 <div className="field">
-                  <label htmlFor="identity-region">州 / 地区</label>
+                  <label htmlFor="identity-region">{t("stateRegion")}</label>
                   <div className="select-wrap">
                     <select
                       id="identity-region"
@@ -1187,7 +1334,7 @@ export default function Home() {
                         setCityQuery("");
                       }}
                     >
-                      <option value="random">全部地区</option>
+                      <option value="random">{t("allRegions")}</option>
                       {regionOptions.map((region) => (
                         <option key={region.value} value={region.value}>
                           {region.label}
@@ -1198,13 +1345,15 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="field">
-                  <label htmlFor="identity-city">城市</label>
+                  <label htmlFor="identity-city">{t("city")}</label>
                   {availableCities.length > 100 && (
                     <input
                       className="city-search-input"
-                      aria-label="搜索当前地区城市"
+                      aria-label={t("searchCurrentCities")}
                       value={cityQuery}
-                      placeholder={`搜索 ${availableCities.length.toLocaleString()} 个城市`}
+                      placeholder={t("searchCitiesPlaceholder", {
+                        count: number(availableCities.length),
+                      })}
                       onChange={(event) => setCityQuery(event.target.value)}
                     />
                   )}
@@ -1216,12 +1365,12 @@ export default function Home() {
                     >
                       <option value="random">
                         {geoLoading
-                          ? "正在加载城市目录…"
+                          ? t("loadingCityDirectory")
                           : usesSyntheticLocality
-                            ? "合成测试城市（上游暂无城市记录）"
+                            ? t("syntheticCity")
                           : regionChoice === "random" && geoData
-                            ? "随机城市（先选地区可指定）"
-                            : "随机城市"}
+                            ? t("randomCitySelectRegion")
+                            : t("randomCity")}
                       </option>
                       {visibleCityOptions.map((city) => (
                         <option
@@ -1236,34 +1385,39 @@ export default function Home() {
                   </div>
                   {availableCities.length > 100 && (
                     <small>
-                      显示前 {visibleCityOptions.length} 个匹配项；输入名称可检索完整目录
+                      {t("cityMatchesNotice", {
+                        count: number(visibleCityOptions.length),
+                      })}
                     </small>
                   )}
                   {usesSyntheticLocality && (
-                    <small>
-                      将使用带 “Test Locality” 标记的合成城市，并保留所选真实地区名称
-                    </small>
+                    <small>{t("syntheticLocalityNotice")}</small>
                   )}
                 </div>
               </div>
               <div className="geo-source-note">
                 <strong>
                   {geoLoading
-                    ? "正在按国家加载地理目录…"
+                    ? t("loadingGeography")
                     : geoData?.country.code === countryCode
                       ? geoData.counts.cities > 0
-                        ? `${geoData.counts.regions} 个地区 · ${geoData.counts.cities.toLocaleString()} 个城市`
-                        : "该国家/地区在当前源中没有城市记录，将使用明确标记的测试占位地址"
-                      : geoError}
+                        ? t("geographyCount", {
+                            regions: number(geoData.counts.regions),
+                            cities: number(geoData.counts.cities),
+                          })
+                        : t("noCityRecords")
+                      : geoError
+                        ? t("geographyLoadError")
+                        : ""}
                 </strong>
-                <span>全球按国家懒加载 · ODbL 社区目录 · 非政府实时名录</span>
+                <span>{t("geographySource")}</span>
               </div>
             </section>
 
             <section className="config-group">
               <div className="config-group-title">
                 <span>02</span>
-                <div><strong>测试场景</strong><small>按工作流组织数据与支付字段</small></div>
+                <div><strong>{t("scenariosTitle")}</strong><small>{t("scenariosHint")}</small></div>
               </div>
               <div className="scenario-grid">
                 {SCENARIOS.map((item) => (
@@ -1273,7 +1427,7 @@ export default function Home() {
                     className={scenario === item.value ? "active" : ""}
                     onClick={() => setScenario(item.value)}
                   >
-                    <strong>{item.label}</strong><small>{item.hint}</small>
+                    <strong>{t(item.labelKey)}</strong><small>{t(item.hintKey)}</small>
                   </button>
                 ))}
               </div>
@@ -1282,11 +1436,11 @@ export default function Home() {
             <section className="config-group">
               <div className="config-group-title">
                 <span>03</span>
-                <div><strong>人口属性</strong><small>精确控制性别与年龄分布</small></div>
+                <div><strong>{t("demographicsTitle")}</strong><small>{t("demographicsHint")}</small></div>
               </div>
 
               <div className="field">
-                <label>性别</label>
+                <label>{t("gender")}</label>
                 <div className="segmented segmented-three">
                   {GENDER_OPTIONS.map(([value, label]) => (
                     <button
@@ -1295,14 +1449,14 @@ export default function Home() {
                       className={genderChoice === value ? "active" : ""}
                       onClick={() => setGenderChoice(value as ProfileGender | "random")}
                     >
-                      {label}
+                      {t(label)}
                     </button>
                   ))}
                 </div>
               </div>
 
               <div className="field">
-                <label>年龄策略</label>
+                <label>{t("ageStrategy")}</label>
                 <div className="segmented segmented-three">
                   {AGE_MODES.map(([value, label]) => (
                     <button
@@ -1311,7 +1465,7 @@ export default function Home() {
                       className={ageMode === value ? "active" : ""}
                       onClick={() => setAgeMode(value)}
                     >
-                      {label}
+                      {t(label)}
                     </button>
                   ))}
                 </div>
@@ -1320,8 +1474,8 @@ export default function Home() {
               {ageMode === "exact" && (
                 <div className="field range-field">
                   <div className="range-label">
-                    <label htmlFor="exact-age">指定年龄</label>
-                    <output htmlFor="exact-age">{exactAge} 岁</output>
+                    <label htmlFor="exact-age">{t("exactAge")}</label>
+                    <output htmlFor="exact-age">{number(exactAge)} {t("years")}</output>
                   </div>
                   <input
                     id="exact-age"
@@ -1337,7 +1491,7 @@ export default function Home() {
               {ageMode === "range" && (
                 <div className="two-column-fields age-range-fields">
                   <div className="field">
-                    <label htmlFor="minimum-age">最小年龄</label>
+                    <label htmlFor="minimum-age">{t("minimumAge")}</label>
                     <input
                       id="minimum-age"
                       type="number"
@@ -1348,7 +1502,7 @@ export default function Home() {
                     />
                   </div>
                   <div className="field">
-                    <label htmlFor="maximum-age">最大年龄</label>
+                    <label htmlFor="maximum-age">{t("maximumAge")}</label>
                     <input
                       id="maximum-age"
                       type="number"
@@ -1370,29 +1524,29 @@ export default function Home() {
                 aria-expanded={identityAdvancedOpen}
               >
                 <span>04</span>
-                <div><strong>身份与地址覆盖</strong><small>可选；留空使用本地化随机值</small></div>
+                <div><strong>{t("identityOverridesTitle")}</strong><small>{t("identityOverridesHint")}</small></div>
                 <b>{identityAdvancedOpen ? "−" : "+"}</b>
               </button>
               {identityAdvancedOpen && (
                 <div className="optional-fields">
                   <div className="two-column-fields">
                     <div className="field">
-                      <label htmlFor="first-name">名字</label>
-                      <input id="first-name" value={firstNameOverride} placeholder="Localized" onChange={(event) => setFirstNameOverride(event.target.value)} />
+                      <label htmlFor="first-name">{t("firstName")}</label>
+                      <input id="first-name" value={firstNameOverride} placeholder={t("localizedPlaceholder")} onChange={(event) => setFirstNameOverride(event.target.value)} />
                     </div>
                     <div className="field">
-                      <label htmlFor="last-name">姓氏</label>
-                      <input id="last-name" value={lastNameOverride} placeholder="Localized" onChange={(event) => setLastNameOverride(event.target.value)} />
+                      <label htmlFor="last-name">{t("lastName")}</label>
+                      <input id="last-name" value={lastNameOverride} placeholder={t("localizedPlaceholder")} onChange={(event) => setLastNameOverride(event.target.value)} />
                     </div>
                   </div>
                   <div className="two-column-fields">
                     <div className="field">
-                      <label htmlFor="street-name">街道</label>
-                      <input id="street-name" value={streetOverride} placeholder="自动选择" onChange={(event) => setStreetOverride(event.target.value)} />
+                      <label htmlFor="street-name">{t("street")}</label>
+                      <input id="street-name" value={streetOverride} placeholder={t("chooseAutomatically")} onChange={(event) => setStreetOverride(event.target.value)} />
                     </div>
                     <div className="field">
-                      <label htmlFor="postal-code">邮编</label>
-                      <input id="postal-code" value={postalCodeOverride} placeholder="自动匹配" onChange={(event) => setPostalCodeOverride(event.target.value)} />
+                      <label htmlFor="postal-code">{t("postalCode")}</label>
+                      <input id="postal-code" value={postalCodeOverride} placeholder={t("matchAutomatically")} onChange={(event) => setPostalCodeOverride(event.target.value)} />
                     </div>
                   </div>
                 </div>
@@ -1402,19 +1556,19 @@ export default function Home() {
             <section className="config-group">
               <div className="config-group-title">
                 <span>05</span>
-                <div><strong>生成规模</strong><small>单条预览或批量导出</small></div>
+                <div><strong>{t("scaleTitle")}</strong><small>{t("scaleHint")}</small></div>
               </div>
               <div className="field">
                 <div className="segmented">
-                  <button type="button" className={generateMode === "single" ? "active" : ""} onClick={() => changeGenerateMode("single")}>单条身份</button>
-                  <button type="button" className={generateMode === "batch" ? "active" : ""} onClick={() => changeGenerateMode("batch")}>批量数据</button>
+                  <button type="button" className={generateMode === "single" ? "active" : ""} onClick={() => changeGenerateMode("single")}>{t("singleIdentity")}</button>
+                  <button type="button" className={generateMode === "batch" ? "active" : ""} onClick={() => changeGenerateMode("batch")}>{t("batchData")}</button>
                 </div>
               </div>
               {generateMode === "batch" && (
                 <div className="field batch-count-field">
                   <div className="range-label">
-                    <label htmlFor="batch-count">生成数量</label>
-                    <output htmlFor="batch-count">{batchCount} 条</output>
+                    <label htmlFor="batch-count">{t("generationCount")}</label>
+                    <output htmlFor="batch-count">{number(batchCount)} {t("items")}</output>
                   </div>
                   <input id="batch-count" type="range" min="1" max="1000" value={batchCount} onChange={(event) => setBatchCount(Number(event.target.value))} />
                   <div className="count-shortcuts">
@@ -1429,19 +1583,19 @@ export default function Home() {
             <section className="config-group">
               <div className="config-group-title">
                 <span>06</span>
-                <div><strong>可复现性与格式</strong><small>固定种子可重复生成同一数据</small></div>
+                <div><strong>{t("reproducibilityTitle")}</strong><small>{t("reproducibilityHint")}</small></div>
               </div>
               <div className="field seed-field">
-                <label htmlFor="seed">随机种子（可选）</label>
+                <label htmlFor="seed">{t("randomSeed")}</label>
                 <div>
-                  <input id="seed" value={seed} placeholder="例如 qa-regression-01" onChange={(event) => setSeed(event.target.value)} />
-                  <button type="button" onClick={() => setSeed(`test-${Date.now().toString(36)}`)}>生成</button>
+                  <input id="seed" value={seed} placeholder={t("seedPlaceholder")} onChange={(event) => setSeed(event.target.value)} />
+                  <button type="button" onClick={() => setSeed(`test-${Date.now().toString(36)}`)}>{t("createSeed")}</button>
                 </div>
               </div>
               <div className="field format-field">
                 <div>
                   <label htmlFor={country.ibanSpec ? "format-toggle" : undefined}>
-                    {country.ibanSpec ? "IBAN 显示空格" : "支付标识质量"}
+                    {country.ibanSpec ? t("ibanSpacing") : t("paymentQuality")}
                   </label>
                   <small>
                     {country.ibanSpec
@@ -1449,8 +1603,8 @@ export default function Home() {
                         ? "DE89 3704 …"
                         : "DE893704…"
                       : country.payment.validation === "checksum"
-                        ? "包含已实现的校验算法"
-                        : "格式测试值 · 不查询真实目录"}
+                        ? t("checksumImplemented")
+                        : t("formatOnlyNoLookup")}
                   </small>
                 </div>
                 {country.ibanSpec && (
@@ -1470,13 +1624,13 @@ export default function Home() {
 
             <section className="config-group config-group-last">
               <button className="advanced-trigger" onClick={() => setAdvancedOpen(!advancedOpen)} aria-expanded={advancedOpen}>
-                <span><b>07</b> 银行字段 / {country.ibanSpec ? "自定义 BBAN" : country.payment.label}</span>
+                <span><b>07</b> {t("bankingFields", { label: country.ibanSpec ? t("customBban") : country.payment.label })}</span>
                 <b>{advancedOpen ? "−" : "+"}</b>
               </button>
               {advancedOpen && (
                 <div className="advanced-fields">
                   <div className="field">
-                    <label htmlFor="case-mode">测试用例</label>
+                    <label htmlFor="case-mode">{t("testCase")}</label>
                     <div className="select-wrap">
                       <select id="case-mode" value={caseMode} onChange={(event) => setCaseMode(event.target.value as IbanCaseMode)}>
                         {caseModeOptions.map((item) => (
@@ -1489,42 +1643,48 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="field">
-                    <label htmlFor="bank-code">{country.payment.routingLabel}</label>
+                    <label htmlFor="bank-code">{t("bankCode")} · {country.payment.routingLabel}</label>
                     <input
                       id="bank-code"
+                      dir="ltr"
                       value={bankCode}
                       maxLength={country.payment.bankCodeLen}
-                      placeholder={`最多 ${country.payment.bankCodeLen} 位`}
+                      placeholder={t("maxCharacters", {
+                        count: country.payment.bankCodeLen,
+                      })}
                       onChange={(event) => setBankCode(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
                     />
                   </div>
                   <div className="field">
-                    <label htmlFor="account-number">Account Number</label>
+                    <label htmlFor="account-number">{t("accountNumber")}</label>
                     <input
                       id="account-number"
+                      dir="ltr"
                       value={account}
                       maxLength={country.payment.accountLen}
-                      placeholder={`最多 ${country.payment.accountLen} 位`}
+                      placeholder={t("maxCharacters", {
+                        count: country.payment.accountLen,
+                      })}
                       onChange={(event) => setAccount(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
                     />
                   </div>
-                  <p>
-                    留空部分将随机补齐。
-                    {country.payment.validation === "checksum"
-                      ? " 可用校验算法会自动重新计算。"
-                      : " 此市场当前仅生成格式测试值，不声明真实银行目录有效性。"}
-                  </p>
+                  <p>{t("customBankingHint", {
+                    detail:
+                      country.payment.validation === "checksum"
+                        ? t("recalculatesChecksum")
+                        : t("formatOnlyDisclaimer"),
+                  })}</p>
                 </div>
               )}
             </section>
 
             <button className="primary-action" disabled={isGenerating} onClick={generateMode === "single" ? regenerate : generateBatch}>
-              <span>{isGenerating ? "正在后台生成…" : generateMode === "single" ? "生成完整测试身份" : `生成 ${batchCount} 条完整身份`}</span>
-              <b>↗</b>
+              <span>{isGenerating ? t("generatingBackground") : generateMode === "single" ? t("generateCompleteIdentity") : t("generateCountIdentities", { count: number(batchCount) })}</span>
+              <b className="rtl-mirror">↗</b>
             </button>
             <div className="share-row">
-              <button type="button" onClick={shareConfiguration}>复制配置链接</button>
-              <span>配置可复现 · 本地无状态</span>
+              <button type="button" onClick={shareConfiguration}>{t("copyConfigurationLink")}</button>
+              <span>{t("reproducibleLocal")}</span>
             </div>
           </aside>
 
@@ -1532,65 +1692,65 @@ export default function Home() {
             {generateMode === "single" ? (
               <>
                 <div className="result-topline">
-                  <span className="step">OUTPUT / COMPLETE IDENTITY</span>
+                  <span className="step">{t("generatedIdentity")}</span>
                   <span className={
                     activeProfile.banking.paymentIdentifier.validation === "negative-test-case"
                       ? "invalid-chip"
                       : "valid-chip"
                   }>
-                    <i /> SYNTHETIC · {
+                    <i /> {t("synthetic")} · {
                       activeProfile.banking.paymentIdentifier.validation === "checksum-valid"
-                        ? "CHECKSUM PASS"
+                        ? t("checksumValid")
                         : activeProfile.banking.paymentIdentifier.validation === "format-only"
-                          ? "FORMAT ONLY"
-                          : "NEGATIVE CASE"
+                          ? t("formatFixture")
+                          : t("negativeTestCase")
                     }
                   </span>
                 </div>
 
-                <div className="active-parameters" role="group" aria-label="本次生成参数">
-                  <span>{country.flag} {activeProfile.country.name}</span>
-                  <span>{activeProfile.address.region}</span>
-                  <span>{activeProfile.address.city}</span>
-                  <span>{activeProfile.personal.gender === "female" ? "女性" : "男性"}</span>
-                  <span>{activeProfile.personal.age} 岁</span>
+                <div className="active-parameters" role="group" aria-label={t("generationParameters")}>
+                  <span>{country.flag} {countryName}</span>
+                  <span><bdi>{activeProfile.address.region}</bdi></span>
+                  <span><bdi>{activeProfile.address.city}</bdi></span>
+                  <span>{activeProfile.personal.gender === "female" ? t("female") : t("male")}</span>
+                  <span>{number(activeProfile.personal.age)} {t("years")}</span>
                   <span>{activeProfile.banking.currency}</span>
-                  <span>{SCENARIOS.find((item) => item.value === scenario)?.label}</span>
+                  <span>{t(SCENARIOS.find((item) => item.value === scenario)?.labelKey ?? "scenarioComplete")}</span>
                   {seed && <span className="seed-chip"># {seed}</span>}
                 </div>
 
                 <div className="profile-heading identity-profile-heading">
                   <div className="profile-avatar">{activeProfile.country.flag}</div>
                   <div>
-                    <span>{activeProfile.country.code} TEST PERSON</span>
-                    <h2>{activeProfile.personal.fullName}</h2>
-                    <p>{activeProfile.personal.age} 岁 · {activeProfile.address.city} · {activeProfile.address.region}</p>
+                    <span>{activeProfile.country.code} {t("testPerson")}</span>
+                    <h2><bdi>{activeProfile.personal.fullName}</bdi></h2>
+                    <p>{number(activeProfile.personal.age)} {t("years")} · <bdi>{activeProfile.address.city}</bdi> · <bdi>{activeProfile.address.region}</bdi></p>
                   </div>
                   <button
                     onClick={() =>
-                      copyText(JSON.stringify(activeProfile, null, 2), "完整身份 JSON 已复制")
+                      copyText(JSON.stringify(activeProfile, null, 2), t("identityJsonCopied"))
                     }
                   >
-                    复制完整 JSON
+                    {t("copyCompleteJson")}
                   </button>
                 </div>
 
-                <div className="quality-grid" role="group" aria-label="数据质量摘要">
-                  <div><span>PROFILE ID</span><strong>{activeProfile.id}</strong></div>
-                  <div><span>LOCALIZATION</span><strong>{activeProfile.country.code} / {activeProfile.address.city}</strong></div>
-                  <div><span>DATA GROUPS</span><strong>08 / {scenario.toUpperCase()}</strong></div>
+                <div className="quality-grid" role="group" aria-label={t("dataQualitySummary")}>
+                  <div><span>{t("profileId")}</span><strong>{activeProfile.id}</strong></div>
+                  <div><span>{t("localization")}</span><strong>{activeProfile.country.code} / {activeProfile.address.city}</strong></div>
+                  <div><span>{t("dataGroups")}</span><strong>08 / {scenario.toUpperCase()}</strong></div>
                   <div>
-                    <span>PAYMENT ID</span>
+                    <span>{t("paymentId")}</span>
                     <strong className={
                       activeProfile.banking.paymentIdentifier.validation === "negative-test-case"
                         ? "negative-value"
                         : "quality-positive"
                     }>
                       {generatedValidation
-                        ? generatedValidation.valid ? "MOD-97 PASS" : "EXPECTED FAIL"
+                        ? generatedValidation.valid ? t("mod97Pass") : t("expectedFailure")
                         : activeProfile.banking.paymentIdentifier.validation === "checksum-valid"
-                          ? `${activeProfile.banking.paymentIdentifier.scheme} CHECK PASS`
-                          : "FORMAT-ONLY FIXTURE"}
+                          ? `${activeProfile.banking.paymentIdentifier.scheme} · ${t("checksumValid")}`
+                          : t("formatOnlyFixture")}
                     </strong>
                   </div>
                 </div>
@@ -1599,91 +1759,91 @@ export default function Home() {
                   <span className="country-tag">
                     {country.flag} {country.code} · {activeProfile.banking.paymentIdentifier.label}
                   </span>
-                  <p>{displayBankingValue(activeProfile)}</p>
+                  <p dir="ltr">{displayBankingValue(activeProfile)}</p>
                   <div className="result-actions">
-                    <button onClick={() => copyText(displayBankingValue(activeProfile), `${activeProfile.banking.paymentIdentifier.label} 已复制`)}>
-                      复制 {activeProfile.banking.paymentIdentifier.scheme} <span>⌘C</span>
+                    <button onClick={() => copyText(displayBankingValue(activeProfile), t("bankingCopied", { label: activeProfile.banking.paymentIdentifier.label }))}>
+                      {t("copyScheme", { scheme: activeProfile.banking.paymentIdentifier.scheme })} <span>⌘C</span>
                     </button>
-                    <button className="icon-button" onClick={regenerate} aria-label="重新生成完整测试身份">↻</button>
+                    <button className="icon-button" onClick={regenerate} aria-label={t("regenerateIdentity")}>↻</button>
                   </div>
                 </div>
 
                 <div className="profile-grid global-profile-grid">
                   <article className="profile-card">
-                    <div className="profile-card-title"><span>01</span><h3>个人身份</h3></div>
+                    <div className="profile-card-title"><span>01</span><h3>{t("personalIdentity")}</h3></div>
                     <dl>
-                      <div><dt>出生日期</dt><dd>{activeProfile.personal.birthDate}</dd></div>
-                      <div><dt>年龄 / 性别</dt><dd>{activeProfile.personal.age} · {activeProfile.personal.gender === "female" ? "女性" : "男性"}</dd></div>
-                      <div><dt>出生地</dt><dd>{activeProfile.personal.birthPlace}</dd></div>
-                      <div><dt>测试证件号</dt><dd className="mono-value">{activeProfile.personal.documentNumber}</dd></div>
+                      <div><dt>{t("dateOfBirth")}</dt><dd className="technical-value">{activeProfile.personal.birthDate}</dd></div>
+                      <div><dt>{t("ageGender")}</dt><dd>{number(activeProfile.personal.age)} · {activeProfile.personal.gender === "female" ? t("female") : t("male")}</dd></div>
+                      <div><dt>{t("placeOfBirth")}</dt><dd><bdi>{activeProfile.personal.birthPlace}</bdi></dd></div>
+                      <div><dt>{t("testDocumentNumber")}</dt><dd className="mono-value">{activeProfile.personal.documentNumber}</dd></div>
                     </dl>
                   </article>
 
                   <article className="profile-card">
-                    <div className="profile-card-title"><span>02</span><h3>地址与联系</h3></div>
+                    <div className="profile-card-title"><span>02</span><h3>{t("addressContact")}</h3></div>
                     <dl>
-                      <div><dt>完整地址</dt><dd>{activeProfile.address.formatted}</dd></div>
-                      <div><dt>地区</dt><dd>{activeProfile.address.region}</dd></div>
-                      <div><dt>手机号码</dt><dd>{activeProfile.contact.phone}</dd></div>
-                      <div><dt>测试邮箱</dt><dd>{activeProfile.contact.email}</dd></div>
+                      <div><dt>{t("fullAddress")}</dt><dd><bdi>{activeProfile.address.formatted}</bdi></dd></div>
+                      <div><dt>{t("region")}</dt><dd><bdi>{activeProfile.address.region}</bdi></dd></div>
+                      <div><dt>{t("phoneNumber")}</dt><dd className="technical-value">{activeProfile.contact.phone}</dd></div>
+                      <div><dt>{t("testEmail")}</dt><dd className="technical-value">{activeProfile.contact.email}</dd></div>
                     </dl>
                   </article>
 
                   <article className="profile-card">
-                    <div className="profile-card-title"><span>03</span><h3>银行账户与银行卡</h3></div>
+                    <div className="profile-card-title"><span>03</span><h3>{t("bankingCards")}</h3></div>
                     <dl>
-                      <div><dt>银行</dt><dd>{activeProfile.banking.bankName}</dd></div>
-                      <div><dt>支付标识类型</dt><dd>{activeProfile.banking.paymentIdentifier.label}</dd></div>
+                      <div><dt>{t("bank")}</dt><dd><bdi>{activeProfile.banking.bankName}</bdi></dd></div>
+                      <div><dt>{t("paymentIdentifierType")}</dt><dd>{activeProfile.banking.paymentIdentifier.label}</dd></div>
                       {activeProfile.banking.iban && <div><dt>BIC / SWIFT</dt><dd className="mono-value">{activeProfile.banking.bic}</dd></div>}
                       {activeProfile.banking.paymentIdentifier.routingNumber && (
                         <div><dt>{country.payment.routingLabel}</dt><dd className="mono-value">{activeProfile.banking.paymentIdentifier.routingNumber}</dd></div>
                       )}
-                      <div><dt>银行账号</dt><dd className="mono-value">{activeProfile.banking.accountNumber}</dd></div>
-                      <div><dt>沙盒卡号</dt><dd className="mono-value">{activeProfile.banking.card.number}</dd></div>
-                      <div><dt>有效期 / CVC</dt><dd>{activeProfile.banking.card.expiry} · {activeProfile.banking.card.cvc}</dd></div>
+                      <div><dt>{t("bankAccount")}</dt><dd className="mono-value">{activeProfile.banking.accountNumber}</dd></div>
+                      <div><dt>{t("sandboxCard")}</dt><dd className="mono-value">{activeProfile.banking.card.number}</dd></div>
+                      <div><dt>{t("expiryCvc")}</dt><dd className="technical-value">{activeProfile.banking.card.expiry} · {activeProfile.banking.card.cvc}</dd></div>
                     </dl>
                   </article>
 
                   <article className="profile-card">
-                    <div className="profile-card-title"><span>04</span><h3>税务、保险与雇佣</h3></div>
+                    <div className="profile-card-title"><span>04</span><h3>{t("taxInsuranceEmployment")}</h3></div>
                     <dl>
                       <div><dt>{activeProfile.government.taxLabel}</dt><dd className="mono-value">{activeProfile.government.taxId}</dd></div>
-                      <div><dt>税号质量</dt><dd className="positive-value">{activeProfile.government.taxStatus === "checksum-valid" ? "校验码通过" : "格式测试值"}</dd></div>
+                      <div><dt>{t("taxIdQuality")}</dt><dd className="positive-value">{activeProfile.government.taxStatus === "checksum-valid" ? t("checksumValid") : t("formatFixture")}</dd></div>
                       <div><dt>{activeProfile.government.insuranceLabel}</dt><dd className="mono-value">{activeProfile.government.insuranceNumber}</dd></div>
-                      <div><dt>测试雇主</dt><dd>{activeProfile.employment.employer}</dd></div>
-                      <div><dt>职位 / 工号</dt><dd>{activeProfile.employment.jobTitle} · {activeProfile.employment.employeeId}</dd></div>
+                      <div><dt>{t("testEmployer")}</dt><dd><bdi>{activeProfile.employment.employer}</bdi></dd></div>
+                      <div><dt>{t("jobEmployeeId")}</dt><dd><bdi>{activeProfile.employment.jobTitle}</bdi> · <bdi className="technical-value">{activeProfile.employment.employeeId}</bdi></dd></div>
                     </dl>
                   </article>
 
                   <article className="profile-card">
-                    <div className="profile-card-title"><span>05</span><h3>KYC 与账户访问</h3></div>
+                    <div className="profile-card-title"><span>05</span><h3>{t("kycAccess")}</h3></div>
                     <dl>
-                      <div><dt>护照测试号</dt><dd className="mono-value">{activeProfile.personal.passportNumber}</dd></div>
-                      <div><dt>风险等级</dt><dd>{activeProfile.personal.kycRiskLevel}</dd></div>
-                      <div><dt>Locale / 时区</dt><dd>{activeProfile.personal.locale} · {activeProfile.personal.timezone}</dd></div>
-                      <div><dt>测试用户名</dt><dd className="mono-value">{activeProfile.personal.username}</dd></div>
+                      <div><dt>{t("testPassport")}</dt><dd className="mono-value">{activeProfile.personal.passportNumber}</dd></div>
+                      <div><dt>{t("riskLevel")}</dt><dd>{t(RISK_LABELS[activeProfile.personal.kycRiskLevel] ?? "riskLow")}</dd></div>
+                      <div><dt>{t("localeTimezone")}</dt><dd className="technical-value">{activeProfile.personal.locale} · {activeProfile.personal.timezone}</dd></div>
+                      <div><dt>{t("testUsername")}</dt><dd className="mono-value">{activeProfile.personal.username}</dd></div>
                     </dl>
                   </article>
 
                   <article className="profile-card">
-                    <div className="profile-card-title"><span>06</span><h3>支付与本地清算</h3></div>
+                    <div className="profile-card-title"><span>06</span><h3>{t("paymentsClearing")}</h3></div>
                     <dl>
-                      <div><dt>Scheme / 币种</dt><dd>{activeProfile.payment.scheme} · {activeProfile.payment.currency}</dd></div>
-                      <div><dt>金额 / Purpose</dt><dd>{activeProfile.payment.amount.toFixed(2)} · {activeProfile.payment.purposeCode}</dd></div>
+                      <div><dt>{t("schemeCurrency")}</dt><dd className="technical-value">{activeProfile.payment.scheme} · {activeProfile.payment.currency}</dd></div>
+                      <div><dt>{t("amountPurpose")}</dt><dd className="technical-value">{activeProfile.payment.amount.toFixed(2)} · {activeProfile.payment.purposeCode}</dd></div>
                       <div><dt>End-to-End ID</dt><dd className="mono-value">{activeProfile.payment.endToEndId}</dd></div>
                       <div><dt>Creditor Reference</dt><dd className="mono-value">{activeProfile.payment.creditorReference}</dd></div>
-                      <div><dt>收款人核验</dt><dd>{activeProfile.payment.verificationOfPayee}</dd></div>
+                      <div><dt>{t("payeeVerification")}</dt><dd>{t(VOP_LABELS[activeProfile.payment.verificationOfPayee] ?? "vopUnavailable")}</dd></div>
                     </dl>
                   </article>
 
                   <article className="profile-card">
-                    <div className="profile-card-title"><span>07</span><h3>企业与薪资</h3></div>
+                    <div className="profile-card-title"><span>07</span><h3>{t("businessPayroll")}</h3></div>
                     <dl>
-                      <div><dt>公司</dt><dd>{activeProfile.business.companyName}</dd></div>
+                      <div><dt>{t("company")}</dt><dd><bdi>{activeProfile.business.companyName}</bdi></dd></div>
                       <div><dt>VAT ID</dt><dd className="mono-value">{activeProfile.business.vatId}</dd></div>
-                      <div><dt>注册编号</dt><dd className="mono-value">{activeProfile.business.registrationNumber}</dd></div>
-                      <div><dt>年薪</dt><dd>{activeProfile.employment.annualSalary.toLocaleString()} {activeProfile.banking.currency}</dd></div>
-                      <div><dt>合同开始</dt><dd>{activeProfile.employment.contractStartDate}</dd></div>
+                      <div><dt>{t("registrationNumber")}</dt><dd className="mono-value">{activeProfile.business.registrationNumber}</dd></div>
+                      <div><dt>{t("annualSalary")}</dt><dd className="technical-value">{number(activeProfile.employment.annualSalary)} {activeProfile.banking.currency}</dd></div>
+                      <div><dt>{t("contractStart")}</dt><dd className="technical-value">{activeProfile.employment.contractStartDate}</dd></div>
                     </dl>
                   </article>
                 </div>
@@ -1691,90 +1851,90 @@ export default function Home() {
                 {country.ibanSpec && activeProfile.banking.iban ? (
                   <div className="structure compact-structure">
                     <div className="section-title">
-                      <h3>IBAN 结构</h3>
-                      <span>{activeProfile.banking.iban.length} characters</span>
+                      <h3>{t("ibanStructure")}</h3>
+                      <span>{number(activeProfile.banking.iban.length)} {t("characters")}</span>
                     </div>
                     {renderSegments(activeProfile.banking.iban, country.ibanSpec)}
                     <div className="legend">
-                      <span><i className="dot-country" /> 国家代码</span>
-                      <span><i className="dot-check" /> 校验码</span>
-                      <span><i className="dot-bank" /> 银行代码</span>
+                      <span><i className="dot-country" /> {t("countryCode")}</span>
+                      <span><i className="dot-check" /> {t("checkDigits")}</span>
+                      <span><i className="dot-bank" /> {t("bankCode")}</span>
                       {country.ibanSpec.branchCodeStart !== null && (
-                        <span><i className="dot-branch" /> 分行代码</span>
+                        <span><i className="dot-branch" /> {t("branchCode")}</span>
                       )}
-                      <span><i className="dot-account" /> 账号</span>
+                      <span><i className="dot-account" /> {t("account")}</span>
                     </div>
                   </div>
                 ) : (
                   <div className="structure compact-structure national-structure">
                     <div className="section-title">
-                      <h3>{activeProfile.banking.paymentIdentifier.label} 结构</h3>
+                      <h3>{t("structure", { label: activeProfile.banking.paymentIdentifier.label })}</h3>
                       <span>{activeProfile.banking.paymentIdentifier.validation}</span>
                     </div>
                     <div className="national-structure-grid">
                       <div><span>Scheme</span><strong>{activeProfile.banking.paymentIdentifier.scheme}</strong></div>
-                      <div><span>Routing</span><strong>{activeProfile.banking.paymentIdentifier.routingNumber ?? "N/A"}</strong></div>
-                      <div><span>Institution</span><strong>{activeProfile.banking.paymentIdentifier.institutionCode ?? "N/A"}</strong></div>
+                      <div><span>{t("routing")}</span><strong>{activeProfile.banking.paymentIdentifier.routingNumber ?? "N/A"}</strong></div>
+                      <div><span>{t("institution")}</span><strong>{activeProfile.banking.paymentIdentifier.institutionCode ?? "N/A"}</strong></div>
                       {activeProfile.banking.paymentIdentifier.branchCode && (
-                        <div><span>Branch</span><strong>{activeProfile.banking.paymentIdentifier.branchCode}</strong></div>
+                        <div><span>{t("branch")}</span><strong>{activeProfile.banking.paymentIdentifier.branchCode}</strong></div>
                       )}
-                      <div><span>Account</span><strong>{activeProfile.banking.paymentIdentifier.accountNumber}</strong></div>
+                      <div><span>{t("account")}</span><strong>{activeProfile.banking.paymentIdentifier.accountNumber}</strong></div>
                     </div>
-                    <p className="structure-disclaimer">这是软件测试值，不会查询真实银行、分行或账户目录。</p>
+                    <p className="structure-disclaimer">{t("testValueDisclaimer")}</p>
                   </div>
                 )}
 
                 <div className="identity-export-bar">
-                  <p><strong>一次生成，字段相互对应</strong> · 银行卡为公开沙盒测试卡，不可真实扣款</p>
+                  <p><strong>{t("correlatedGeneration")}</strong> · {t("sandboxCardDisclaimer")}</p>
                   <div>
                     {country.ibanSpec && (
-                      <button onClick={() => copyText(countryRegex(country.ibanSpec!), "IBAN 正则已复制")}>复制正则</button>
+                      <button onClick={() => copyText(countryRegex(country.ibanSpec!), t("regexCopied"))}>{t("copyRegex")}</button>
                     )}
-                    <select aria-label="导出格式" value={exportFormat} onChange={(event) => setExportFormat(event.target.value as ExportFormat)}>
+                    <select aria-label={t("exportFormat")} value={exportFormat} onChange={(event) => setExportFormat(event.target.value as ExportFormat)}>
                       {EXPORT_FORMATS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
                     </select>
-                    <button onClick={() => exportData()}>导出 ↓</button>
+                    <button onClick={() => exportData()}>{t("export")} ↓</button>
                   </div>
                 </div>
               </>
             ) : (
               <>
                 <div className="result-topline">
-                  <span className="step">OUTPUT / COMPLETE IDENTITY BATCH</span>
-                  <span className="batch-meta">{profiles.length > 1 ? profiles.length : batchCount} rows · {country.code}</span>
+                  <span className="step">{t("batchOutput")}</span>
+                  <span className="batch-meta">{number(profiles.length > 1 ? profiles.length : batchCount)} {t("rows")} · {country.code}</span>
                 </div>
                 {profiles.length <= 1 ? (
                   <div className="empty-state">
                     <span>[ ]</span>
-                    <h3>完整身份批次尚未生成</h3>
-                    <p>选择数量后点击左侧按钮，每一行都会包含人物、地址、税务、保险与银行字段。</p>
+                    <h3>{t("batchNotGenerated")}</h3>
+                    <p>{t("batchEmptyHint")}</p>
                   </div>
                 ) : (
                   <>
                     <div className="batch-toolbar identity-batch-toolbar">
-                      <p><strong>{profiles.length}</strong> 条完整身份 <span>当前仅预览第 {batchPage + 1} 页，导出始终包含全部数据</span></p>
+                      <p><strong>{t("completeIdentities", { count: number(profiles.length) })}</strong> <span>{t("previewPage", { page: number(batchPage + 1) })}</span></p>
                       <div>
-                        <button onClick={() => copyText(JSON.stringify(profiles, null, 2), "全部身份 JSON 已复制")}>复制全部</button>
+                        <button onClick={() => copyText(JSON.stringify(profiles, null, 2), t("allJsonCopied"))}>{t("copyAll")}</button>
                       </div>
                     </div>
                     <section className="batch-export-center" aria-labelledby="batch-export-title">
                       <div className="batch-export-heading">
                         <div>
-                          <span>EXPORT ALL {profiles.length} IDENTITIES</span>
-                          <h3 id="batch-export-title">批量导出中心</h3>
-                          <p>导出完整嵌套身份、KYC、地址、银行、企业、薪资与支付字段，不受 25 条分页预览限制。</p>
+                          <span>{t("exportAllHeading", { count: number(profiles.length) })}</span>
+                          <h3 id="batch-export-title">{t("batchExportCenter")}</h3>
+                          <p>{t("batchExportDescription")}</p>
                         </div>
-                        <strong>{EXPORT_FORMATS.length} FORMATS</strong>
+                        <strong>{number(EXPORT_FORMATS.length)} {t("exportFormat").toUpperCase()}</strong>
                       </div>
 
-                      <div className="quick-export-grid" aria-label="常用批量导出格式">
+                      <div className="quick-export-grid" aria-label={t("commonBatchFormats")}>
                         {(["json", "csv", "ndjson"] as const).map((format) => {
                           const metadata = exportFileMetadata(format);
                           return (
                             <button type="button" key={format} onClick={() => exportData(format)}>
                               <span>{metadata.label}</span>
-                              <small>{format === "json" ? "完整嵌套" : format === "csv" ? "完整扁平字段" : "每行一条"}</small>
-                              <b>下载全部 {profiles.length} 条 ↓</b>
+                              <small>{format === "json" ? t("nestedComplete") : format === "csv" ? t("flatComplete") : t("onePerLine")}</small>
+                              <b>{t("downloadAll", { count: number(profiles.length) })}</b>
                             </button>
                           );
                         })}
@@ -1782,8 +1942,8 @@ export default function Home() {
 
                       <div className="advanced-export-row">
                         <label htmlFor="batch-export-format">
-                          <span>更多开发者格式</span>
-                          <small>{selectedExportMetadata.description}</small>
+                          <span>{t("moreDeveloperFormats")}</span>
+                          <small>{t(EXPORT_DESCRIPTION_KEYS[exportFormat])}</small>
                         </label>
                         <select
                           id="batch-export-format"
@@ -1795,13 +1955,13 @@ export default function Home() {
                           ))}
                         </select>
                         <button type="button" onClick={() => exportData()}>
-                          导出全部 {profiles.length} 条
+                          {t("exportAll", { count: number(profiles.length) })}
                         </button>
                       </div>
 
-                      <div className="export-coverage" role="list" aria-label="批量导出数据覆盖">
-                        {["人物与证件", "地址与联系", "税务与保险", "银行与卡片", "企业与薪资", "支付与 SEPA"].map((label) => (
-                          <span role="listitem" key={label}><i /> {label}</span>
+                      <div className="export-coverage" role="list" aria-label={t("batchExportCoverage")}>
+                        {(["coveragePerson", "coverageAddress", "coverageTax", "coverageBanking", "coverageBusiness", "coveragePayments"] as const).map((label) => (
+                          <span role="listitem" key={label}><i /> {t(label)}</span>
                         ))}
                       </div>
                     </section>
@@ -1810,14 +1970,14 @@ export default function Home() {
                         <article className="identity-batch-row" key={profile.id}>
                           <span>{String(batchPage * 25 + index + 1).padStart(2, "0")}</span>
                           <div>
-                            <strong>{profile.country.flag} {profile.personal.fullName}</strong>
-                            <small>{profile.personal.age} 岁 · {profile.address.postalCode} {profile.address.city}</small>
+                            <strong>{profile.country.flag} <bdi>{profile.personal.fullName}</bdi></strong>
+                            <small>{number(profile.personal.age)} {t("years")} · <bdi>{profile.address.postalCode} {profile.address.city}</bdi></small>
                           </div>
                           <code>{profile.government.taxId}</code>
                           <code>{displayBankingValue(profile)}</code>
                           <button
-                            onClick={() => copyText(JSON.stringify(profile, null, 2), `第 ${index + 1} 条身份已复制`)}
-                            aria-label={`复制第 ${index + 1} 条完整身份`}
+                            onClick={() => copyText(JSON.stringify(profile, null, 2), t("itemCopied", { index: number(batchPage * 25 + index + 1) }))}
+                            aria-label={t("copyIdentityAt", { index: number(batchPage * 25 + index + 1) })}
                           >
                             ⧉
                           </button>
@@ -1826,9 +1986,9 @@ export default function Home() {
                     </div>
                     {profiles.length > 25 && (
                       <div className="pagination">
-                        <button type="button" disabled={batchPage === 0} onClick={() => setBatchPage((page) => Math.max(0, page - 1))}>上一页</button>
+                        <button type="button" disabled={batchPage === 0} onClick={() => setBatchPage((page) => Math.max(0, page - 1))}>{t("previousPage")}</button>
                         <span>{batchPage + 1} / {Math.ceil(profiles.length / 25)}</span>
-                        <button type="button" disabled={batchPage >= Math.ceil(profiles.length / 25) - 1} onClick={() => setBatchPage((page) => page + 1)}>下一页</button>
+                        <button type="button" disabled={batchPage >= Math.ceil(profiles.length / 25) - 1} onClick={() => setBatchPage((page) => page + 1)}>{t("nextPage")}</button>
                       </div>
                     )}
                   </>
@@ -1842,24 +2002,25 @@ export default function Home() {
           <div className="validator-input-card">
             <div className="panel-heading">
               <div>
-                <span className="step">INSPECTOR</span>
-                <h2>输入任意 IBAN</h2>
+                <span className="step">{t("inspector")}</span>
+                <h2>{t("enterAnyIban")}</h2>
               </div>
             </div>
-            <label htmlFor="validator">IBAN 字符串</label>
+            <label htmlFor="validator">{t("ibanString")}</label>
             <textarea
               id="validator"
+              dir="ltr"
               value={validatorInput}
               spellCheck={false}
-              placeholder="例如 DE89 3704 0044 0532 0130 00"
+              placeholder={t("ibanPlaceholder")}
               onChange={(event) => setValidatorInput(event.target.value)}
             />
             <div className="input-meta">
-              <span>自动忽略空格与连字符</span>
-              <span>{validation.compact.length} characters</span>
+              <span>{t("separatorsIgnored")}</span>
+              <span>{number(validation.compact.length)} {t("characters")}</span>
             </div>
             <div className="sample-row">
-              <span>试试示例</span>
+              <span>{t("tryExamples")}</span>
               {["DE89370400440532013000", "GB82WEST12345698765432", "NL91ABNA0417164300"].map((sample) => (
                 <button key={sample} onClick={() => setValidatorInput(sample)}>{sample.slice(0, 2)}</button>
               ))}
@@ -1870,18 +2031,18 @@ export default function Home() {
             <div className="validation-status">
               <span className="status-icon">{validation.valid ? "✓" : "!"}</span>
               <div>
-                <span className="step">VALIDATION RESULT</span>
-                <h2>{validation.valid ? "合法 IBAN" : "无效 IBAN"}</h2>
-                <p>{VALIDATION_REASONS[validation.reason] ?? validation.reason}</p>
+                <span className="step">{t("validationResult")}</span>
+                <h2>{validation.valid ? t("validIban") : t("invalidIban")}</h2>
+                <p>{VALIDATION_REASONS[validation.reason] ? t(VALIDATION_REASONS[validation.reason]) : validation.reason}</p>
               </div>
             </div>
 
-            <div className="validation-checks" aria-label="分层校验结果">
+            <div className="validation-checks" aria-label={t("layeredValidation")}>
               {[
-                ["字符集", validation.checks.inputCharactersValid],
-                ["国家注册", validation.checks.countryRegistered],
-                ["长度", validation.checks.lengthValid],
-                ["BBAN 结构", validation.checks.bbanValid],
+                [t("checkCharacterSet"), validation.checks.inputCharactersValid],
+                [t("checkCountryRegistry"), validation.checks.countryRegistered],
+                [t("checkLength"), validation.checks.lengthValid],
+                [t("checkBban"), validation.checks.bbanValid],
                 ["MOD-97", validation.checks.checksumValid],
               ].map(([label, passed]) => (
                 <div key={String(label)} className={passed ? "passed" : "failed"}>
@@ -1894,27 +2055,31 @@ export default function Home() {
               <>
                 <div className="inspector-spec">
                   <div>
-                    <span>国家</span>
+                    <span>{t("country")}</span>
                     <strong>
                       {validation.country.flag}{" "}
-                      {COUNTRY_MAP.get(validation.country.code)?.name ??
-                        validation.country.name}
+                      {displayCountryName(
+                        validation.country.code,
+                        locale,
+                        COUNTRY_MAP.get(validation.country.code)?.englishName ??
+                          validation.country.name,
+                      )}
                     </strong>
                   </div>
-                  <div><span>规范长度</span><strong>{validation.country.length} 位</strong></div>
-                  <div><span>算法</span><strong>ISO 13616</strong></div>
+                  <div><span>{t("canonicalLength")}</span><strong>{number(validation.country.length)} {t("characters")}</strong></div>
+                  <div><span>{t("algorithm")}</span><strong>ISO 13616</strong></div>
                 </div>
                 <div className="structure inspector-structure">
                   <div className="section-title">
-                    <h3>结构拆解</h3>
-                    <button onClick={() => copyText(validation.compact)}>复制 Raw</button>
+                    <h3>{t("structureBreakdown")}</h3>
+                    <button onClick={() => copyText(validation.compact)}>{t("copyRaw")}</button>
                   </div>
                   {renderSegments(validation.compact, validation.country)}
                   <div className="legend">
-                    <span><i className="dot-country" /> 国家</span>
-                    <span><i className="dot-check" /> 校验码</span>
-                    <span><i className="dot-bank" /> 银行代码</span>
-                    <span><i className="dot-account" /> 账号</span>
+                    <span><i className="dot-country" /> {t("country")}</span>
+                    <span><i className="dot-check" /> {t("checkDigits")}</span>
+                    <span><i className="dot-bank" /> {t("bankCode")}</span>
+                    <span><i className="dot-account" /> {t("account")}</span>
                   </div>
                 </div>
               </>
@@ -1925,8 +2090,8 @@ export default function Home() {
 
       <footer>
         <div className="footer-mark">IB</div>
-        <p>本工具生成的跨国身份、IBAN、保险与银行卡字段仅供软件开发、测试和教学使用。格式或校验码通过不代表真实账户、真实个人或官方签发记录。</p>
-        <a href="https://github.com/tianrking/iban-devtools" target="_blank" rel="noreferrer">SOURCE ON GITHUB ↗</a>
+        <p>{t("disclaimer")}</p>
+        <a href="https://github.com/tianrking/iban-devtools" target="_blank" rel="noreferrer">{t("sourceOnGithub")}</a>
       </footer>
 
       {commandOpen && (
@@ -1936,14 +2101,14 @@ export default function Home() {
             className="command-palette"
             role="dialog"
             aria-modal="true"
-            aria-label="命令面板"
+            aria-label={t("commandPalette")}
             onMouseDown={(event) => event.stopPropagation()}
           >
-            <div><span>IBAN DEVTOOLS COMMANDS</span><button type="button" onClick={() => setCommandOpen(false)}>Esc</button></div>
-            <button type="button" onClick={() => { setTab("generate"); regenerate(); setCommandOpen(false); }}><strong>生成一条完整身份</strong><kbd>↵</kbd></button>
-            <button type="button" onClick={() => { setTab("validate"); setCommandOpen(false); }}><strong>打开 IBAN 校验器</strong><span>Inspect</span></button>
-            <button type="button" onClick={() => { shareConfiguration(); setCommandOpen(false); }}><strong>复制当前配置链接</strong><span>Share</span></button>
-            <button type="button" onClick={() => { setTheme(theme === "light" ? "dark" : "light"); setCommandOpen(false); }}><strong>切换外观模式</strong><span>{theme}</span></button>
+            <div><span>{t("commandPalette").toUpperCase()}</span><button type="button" onClick={() => setCommandOpen(false)}>Esc</button></div>
+            <button type="button" onClick={() => { setTab("generate"); regenerate(); setCommandOpen(false); }}><strong>{t("generateOneCommand")}</strong><kbd>↵</kbd></button>
+            <button type="button" onClick={() => { setTab("validate"); setCommandOpen(false); }}><strong>{t("openValidatorCommand")}</strong><span>{t("inspect")}</span></button>
+            <button type="button" onClick={() => { shareConfiguration(); setCommandOpen(false); }}><strong>{t("copyLinkCommand")}</strong><span>{t("share")}</span></button>
+            <button type="button" onClick={() => { setTheme(theme === "light" ? "dark" : "light"); setCommandOpen(false); }}><strong>{t("switchThemeCommand")}</strong><span>{theme === "light" ? t("lightTheme") : t("darkTheme")}</span></button>
           </div>
         </div>
       )}
@@ -1951,11 +2116,11 @@ export default function Home() {
       {tab === "generate" && (
         <div className="mobile-action-dock">
           <div>
-            <span>{country.flag} {country.code} · {SCENARIOS.find((item) => item.value === scenario)?.label}</span>
-            <small>{generateMode === "single" ? "单条身份" : `${batchCount} 条批量身份`}</small>
+            <span>{country.flag} {country.code} · {t(SCENARIOS.find((item) => item.value === scenario)?.labelKey ?? "scenarioComplete")}</span>
+            <small>{generateMode === "single" ? t("singleIdentity") : t("completeIdentities", { count: number(batchCount) })}</small>
           </div>
           <button type="button" disabled={isGenerating} onClick={generateMode === "single" ? regenerate : generateBatch}>
-            {isGenerating ? "生成中…" : "立即生成"}
+            {isGenerating ? t("generating") : t("generateNow")}
           </button>
         </div>
       )}

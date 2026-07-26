@@ -61,7 +61,20 @@ if (command === "countries") {
   if (!value) {
     fail("Usage: iban-devtools validate <IBAN>");
   } else {
-    const result = validateIban(value);
+    const validation = validateIban(value);
+    const catalogCountry = validation.country
+      ? COUNTRY_CATALOG_MAP.get(validation.country.code)
+      : undefined;
+    const result =
+      validation.country && catalogCountry
+        ? {
+            ...validation,
+            country: {
+              ...validation.country,
+              name: catalogCountry.englishName,
+            },
+          }
+        : validation;
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
     if (!result.valid) process.exitCode = 2;
   }

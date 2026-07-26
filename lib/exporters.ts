@@ -21,18 +21,18 @@ export const EXPORT_FORMATS: Array<{
   mime: string;
   description: string;
 }> = [
-  { value: "json", label: "JSON", extension: "json", mime: "application/json", description: "完整嵌套数据，推荐 API 与通用测试" },
-  { value: "ndjson", label: "NDJSON", extension: "ndjson", mime: "application/x-ndjson", description: "每行一条完整身份，适合流式导入" },
-  { value: "csv", label: "CSV", extension: "csv", mime: "text/csv;charset=utf-8", description: "完整字段扁平化，适合表格和数据仓库" },
-  { value: "typescript", label: "TypeScript", extension: "ts", mime: "text/typescript", description: "带自动推导类型的 fixtures" },
-  { value: "zod", label: "Zod Schema", extension: "ts", mime: "text/typescript", description: "Schema 与整批 fixtures" },
-  { value: "json-schema", label: "JSON Schema", extension: "schema.json", mime: "application/schema+json", description: "批次数组结构校验 Schema" },
-  { value: "playwright", label: "Playwright fixture", extension: "ts", mime: "text/typescript", description: "按 worker 自动分配完整身份" },
-  { value: "cypress", label: "Cypress fixture", extension: "json", mime: "application/json", description: "可直接放入 cypress/fixtures" },
-  { value: "postman", label: "Postman Environment", extension: "postman_environment.json", mime: "application/json", description: "首条快捷变量与整批 JSON" },
-  { value: "env", label: ".env", extension: "env", mime: "text/plain", description: "首条变量与整批 JSON 环境值" },
-  { value: "sql", label: "SQL INSERT", extension: "sql", mime: "application/sql", description: "关键列与完整 JSON 文档" },
-  { value: "python", label: "Python fixture", extension: "py", mime: "text/x-python", description: "标准库可直接载入的完整列表" },
+  { value: "json", label: "JSON", extension: "json", mime: "application/json", description: "Complete nested data for APIs and general testing" },
+  { value: "ndjson", label: "NDJSON", extension: "ndjson", mime: "application/x-ndjson", description: "One complete identity per line for streaming imports" },
+  { value: "csv", label: "CSV", extension: "csv", mime: "text/csv;charset=utf-8", description: "Fully flattened fields for spreadsheets and warehouses" },
+  { value: "typescript", label: "TypeScript", extension: "ts", mime: "text/typescript", description: "Fixtures with automatically inferred types" },
+  { value: "zod", label: "Zod Schema", extension: "ts", mime: "text/typescript", description: "Schema plus the complete fixture batch" },
+  { value: "json-schema", label: "JSON Schema", extension: "schema.json", mime: "application/schema+json", description: "Array validation schema for the whole batch" },
+  { value: "playwright", label: "Playwright fixture", extension: "ts", mime: "text/typescript", description: "Distributes complete identities by worker" },
+  { value: "cypress", label: "Cypress fixture", extension: "json", mime: "application/json", description: "Ready for cypress/fixtures" },
+  { value: "postman", label: "Postman Environment", extension: "postman_environment.json", mime: "application/json", description: "Quick first-record variables plus full-batch JSON" },
+  { value: "env", label: ".env", extension: "env", mime: "text/plain", description: "First-record variables plus a full-batch JSON value" },
+  { value: "sql", label: "SQL INSERT", extension: "sql", mime: "application/sql", description: "Key columns plus the complete JSON document" },
+  { value: "python", label: "Python fixture", extension: "py", mime: "text/x-python", description: "Complete list loadable with the Python standard library" },
 ];
 
 function csvEscape(value: unknown) {

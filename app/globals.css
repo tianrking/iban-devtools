@@ -113,7 +113,7 @@ main {
 }
 
 .version-badge {
-  margin-left: 2px;
+  margin-inline-start: 2px;
   padding: 4px 6px;
   border: 1px solid #d6ddd8;
   border-radius: 99px;
@@ -139,7 +139,7 @@ main {
   display: inline-block;
   width: 7px;
   height: 7px;
-  margin-right: 6px;
+  margin-inline-end: 6px;
   border-radius: 50%;
   background: var(--green);
   box-shadow: 0 0 0 4px rgba(66, 211, 141, 0.13);
@@ -164,7 +164,7 @@ main {
 }
 
 .header-link span {
-  margin-left: 6px;
+  margin-inline-start: 6px;
   color: #8b9690;
 }
 
@@ -177,6 +177,55 @@ main {
 .standard-mark b {
   color: #3e4945;
   font-weight: 750;
+}
+
+.language-select {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 74px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.45);
+  color: #5f6965;
+}
+
+.language-select select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: transparent;
+  cursor: pointer;
+}
+
+.language-select select:focus-visible {
+  outline: 3px solid rgba(105, 168, 255, 0.55);
+  outline-offset: 2px;
+}
+
+.language-select option {
+  background: white;
+  color: #202825;
+}
+
+.language-select b {
+  padding-inline-start: 11px;
+  pointer-events: none;
+  font: 700 9px/1 var(--font-geist-mono), monospace;
+  letter-spacing: 0.04em;
+}
+
+.language-select i {
+  margin-inline: auto 9px;
+  pointer-events: none;
+  color: #8d9792;
+  font-style: normal;
+  font-size: 10px;
 }
 
 .intro {
@@ -226,7 +275,7 @@ main {
 }
 
 .platform-label {
-  margin-right: 4px;
+  margin-inline-end: 4px;
   color: #7a8581;
   font: 650 8px/1 var(--font-geist-mono), monospace;
   letter-spacing: 0.11em;
@@ -256,8 +305,8 @@ main {
 
 .intro-stat {
   width: 165px;
-  padding-left: 22px;
-  border-left: 1px solid var(--line);
+  padding-inline-start: 22px;
+  border-inline-start: 1px solid var(--line);
 }
 
 .intro-stat span,
@@ -280,7 +329,8 @@ main {
   gap: 4px;
   padding: 4px;
   width: fit-content;
-  margin: 0 0 16px 12px;
+  margin-block: 0 16px;
+  margin-inline-start: 12px;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.55);
@@ -298,7 +348,7 @@ main {
 }
 
 .main-tabs button span {
-  margin-right: 10px;
+  margin-inline-end: 10px;
   color: #9ba49f;
   font: 600 9px/1 var(--font-geist-mono), monospace;
 }
@@ -330,7 +380,7 @@ main {
   display: flex;
   flex-direction: column;
   padding: 30px;
-  border-right: 0;
+  border-inline-end: 0;
   background:
     radial-gradient(circle at 10% 0, rgba(201, 244, 107, 0.09), transparent 18rem),
     #111817;
@@ -467,7 +517,7 @@ main {
   padding: 0;
   border: 0;
   background: transparent;
-  text-align: left;
+  text-align: start;
 }
 
 .config-group-toggle > b {
@@ -641,7 +691,8 @@ main {
 .advanced-fields input {
   width: 100%;
   height: 44px;
-  padding: 0 38px 0 13px;
+  padding-block: 0;
+  padding-inline: 13px 38px;
   appearance: none;
   border: 1px solid #ccd3cf;
   border-radius: 8px;
@@ -664,7 +715,7 @@ main {
 
 .select-wrap span {
   position: absolute;
-  right: 14px;
+  inset-inline-end: 14px;
   top: 10px;
   pointer-events: none;
   color: #6f7975;
@@ -883,7 +934,7 @@ main {
 .valid-chip i {
   width: 6px;
   height: 6px;
-  margin-right: 5px;
+  margin-inline-end: 5px;
   box-shadow: none;
 }
 
@@ -940,7 +991,7 @@ main {
 }
 
 .result-actions button span {
-  margin-left: 8px;
+  margin-inline-start: 8px;
   color: #9ba49f;
   font: 500 8px/1 var(--font-geist-mono), monospace;
 }
@@ -971,6 +1022,8 @@ main {
   flex-wrap: wrap;
   gap: 4px;
   margin: 22px 0 16px;
+  direction: ltr;
+  unicode-bidi: isolate;
 }
 
 .segment-value span {
@@ -1025,7 +1078,7 @@ main {
   display: inline-block;
   width: 6px;
   height: 6px;
-  margin-right: 5px;
+  margin-inline-end: 5px;
   border-radius: 50%;
 }
 
@@ -1112,7 +1165,7 @@ main {
 }
 
 .batch-toolbar p span {
-  margin-left: 8px;
+  margin-inline-start: 8px;
   color: #41845b;
 }
 
@@ -1177,7 +1230,7 @@ main {
 }
 
 .validator-input-card {
-  border-right: 1px solid var(--line);
+  border-inline-end: 1px solid var(--line);
   background: #f9faf6;
 }
 
@@ -1207,7 +1260,7 @@ main {
 }
 
 .sample-row span {
-  margin-right: 4px;
+  margin-inline-end: 4px;
   color: #7a8581;
   font-size: 10px;
 }
@@ -1601,7 +1654,7 @@ main {
   margin: 0;
   overflow-wrap: anywhere;
   color: #2e3834;
-  text-align: right;
+  text-align: end;
   font-size: 10px;
   font-weight: 650;
 }
@@ -1719,7 +1772,7 @@ main {
   padding: 11px;
   background: white;
   color: #2c3732;
-  text-align: left;
+  text-align: start;
   cursor: pointer;
   transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
 }
@@ -1783,7 +1836,8 @@ main {
   min-height: 38px;
   border: 1px solid #d1d8d3;
   border-radius: 7px;
-  padding: 0 30px 0 10px;
+  padding-block: 0;
+  padding-inline: 10px 30px;
   background: white;
   color: #303a36;
   font: 650 9px/1 var(--font-geist-mono), monospace;
@@ -1877,6 +1931,80 @@ main {
   overflow-wrap: anywhere;
   color: #4b5651;
   font: 550 9px/1.4 var(--font-geist-mono), monospace;
+  direction: ltr;
+  text-align: start;
+  unicode-bidi: isolate;
+}
+
+.mono-value,
+.technical-value,
+.iban-display p,
+.validator-input-card textarea,
+.national-structure-grid strong,
+.quality-grid strong,
+.seed-chip,
+code,
+kbd {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.technical-value {
+  font-variant-numeric: tabular-nums;
+}
+
+[dir="rtl"] .toggle span {
+  margin-left: auto;
+}
+
+[dir="rtl"] .toggle.on span {
+  transform: translateX(-19px);
+}
+
+[dir="rtl"] .rtl-mirror {
+  transform: scaleX(-1);
+}
+
+[lang="ar"] body {
+  font-family:
+    "Noto Sans Arabic",
+    "Segoe UI",
+    Tahoma,
+    Arial,
+    sans-serif;
+}
+
+[lang="ar"] .intro h1 {
+  line-height: 1.16;
+  letter-spacing: 0;
+}
+
+[lang="ar"] .intro h1 em {
+  font-family: inherit;
+  font-style: normal;
+}
+
+[lang="ar"] .step,
+[lang="ar"] .config-status,
+[lang="ar"] .local-badge,
+[lang="ar"] .platform-label,
+[lang="ar"] .quick-start-heading span,
+[lang="ar"] .invalid-chip,
+[lang="ar"] .command-palette > div {
+  line-height: 1.35;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+@media (max-width: 1050px) {
+  .header-meta {
+    gap: 10px;
+  }
+
+  .local-badge,
+  .standard-mark {
+    display: none;
+  }
 }
 
 .identity-batch-row button {
@@ -1974,7 +2102,7 @@ footer > a:hover {
 
   .config-panel,
   .validator-input-card {
-    border-right: 0;
+    border-inline-end: 0;
     border-bottom: 1px solid var(--line);
   }
 
@@ -2138,7 +2266,7 @@ footer > a:hover {
 }
 
 .header-command kbd {
-  margin-left: 5px;
+  margin-inline-start: 5px;
   color: #9aa19e;
 }
 
@@ -2179,7 +2307,7 @@ footer > a:hover {
 .quick-start-heading > small {
   color: #707975;
   font: 600 8px/1.3 var(--font-geist-mono), monospace;
-  text-align: right;
+  text-align: end;
 }
 
 .preset-strip {
@@ -2214,7 +2342,7 @@ footer > a:hover {
   padding: 8px 9px;
   background: #171b19;
   color: #cbd1ce;
-  text-align: left;
+  text-align: start;
   cursor: pointer;
   transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
 }
@@ -2379,7 +2507,7 @@ footer > a:hover {
 .share-row span {
   color: #606865;
   font: 600 8px/1.4 var(--font-geist-mono), monospace;
-  text-align: right;
+  text-align: end;
 }
 
 .invalid-chip {
@@ -2407,7 +2535,8 @@ footer > a:hover {
   min-height: 34px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  padding: 0 28px 0 9px;
+  padding-block: 0;
+  padding-inline: 9px 28px;
   background: white;
   color: var(--ink);
   font: 650 9px/1 var(--font-geist-mono), monospace;
@@ -2504,7 +2633,7 @@ footer > a:hover {
   padding: 14px 17px;
   background: transparent;
   color: #d8deda;
-  text-align: left;
+  text-align: start;
 }
 
 .command-palette > div {
@@ -2552,6 +2681,16 @@ html[data-theme="dark"] {
 
 html[data-theme="dark"] body {
   background: #0d100f;
+}
+
+html[data-theme="dark"] .language-select {
+  background: #161b19;
+  color: #c6ceca;
+}
+
+html[data-theme="dark"] .language-select option {
+  background: #161b19;
+  color: #e3e8e5;
 }
 
 html[data-theme="dark"] .site-header,
@@ -2603,7 +2742,7 @@ html[data-theme="dark"] footer {
   }
 
   .quick-start-heading > small {
-    text-align: left;
+    text-align: start;
   }
 
   .preset-strip {
@@ -2670,9 +2809,9 @@ html[data-theme="dark"] footer {
   .mobile-action-dock {
     position: fixed;
     z-index: 30;
-    right: 10px;
+    inset-inline-end: 10px;
     bottom: 10px;
-    left: 10px;
+    inset-inline-start: 10px;
     display: flex;
     align-items: center;
     justify-content: space-between;
