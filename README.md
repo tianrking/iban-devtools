@@ -23,7 +23,8 @@
 - 完整身份支持 1–1000 条批量生成，25 条分页预览
 - 内置 KYC、支付、薪资、电商、SEPA、API 边界和数据库种子场景
 - 导出 JSON、CSV、TypeScript、Zod、JSON Schema、Playwright、Cypress、Postman、`.env`、SQL 与 Python
-- 场景预设、上次配置恢复、可分享的可复现 URL、深色模式与 `⌘K` 命令面板
+- 跟随当前国家的上下文场景预设、配置恢复/重置、可复现 URL、深色模式与 `⌘K` 命令面板
+- 移动端固定生成操作栏，长表单中无需反复滚动寻找生成按钮
 - 支持离线安装的 PWA；浏览器工作台不上传输入，仅在本地保存最后一次配置
 - 提供 CORS Edge API、命令行工具与每月 SWIFT 注册表版本提醒
 - 同一套源码可部署到 Vercel 和 Cloudflare Workers

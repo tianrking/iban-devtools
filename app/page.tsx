@@ -75,6 +75,16 @@ const VALIDATION_REASONS: Record<string, string> = {
   INVALID_IBAN: "IBAN 无效",
 };
 
+type QuickPreset = {
+  id: "kyc" | "payment-regression" | "payment-failure" | "database";
+  icon: string;
+  title: string;
+  description: string;
+  scenario: IdentityScenario;
+  caseMode: IbanCaseMode;
+  count: number;
+};
+
 function downloadFile(content: string, filename: string, type: string) {
   const blob = new Blob([content], { type });
   const url = URL.createObjectURL(blob);
@@ -157,6 +167,50 @@ export default function Home() {
         ? exactAge
         : { min: minimumAge, max: maximumAge };
   const activeProfile = profiles[0] ?? DEFAULT_SYNTHETIC_IDENTITY;
+  const quickPresets: QuickPreset[] = [
+    {
+      id: "kyc",
+      icon: "ID",
+      title: "KYC 身份核验",
+      description: `${country.code} · 单条完整身份`,
+      scenario: "kyc",
+      caseMode: "valid",
+      count: 1,
+    },
+    {
+      id: "payment-regression",
+      icon: "↔",
+      title: country.sepa ? "SEPA 支付回归" : "本地支付回归",
+      description: `${country.currency} · 10 条合法账户`,
+      scenario: country.sepa ? "sepa" : "payments",
+      caseMode: "valid",
+      count: 10,
+    },
+    {
+      id: "payment-failure",
+      icon: "×",
+      title: "支付失败用例",
+      description: `${country.code} · 错误校验码`,
+      scenario: "payments",
+      caseMode: "bad-checksum",
+      count: 1,
+    },
+    {
+      id: "database",
+      icon: "DB",
+      title: "数据库测试种子",
+      description: `${country.code} · 100 条可导出`,
+      scenario: "database",
+      caseMode: "valid",
+      count: 100,
+    },
+  ];
+  const activePresetId = quickPresets.find(
+    (preset) =>
+      preset.scenario === scenario &&
+      preset.caseMode === caseMode &&
+      preset.count === (generateMode === "single" ? 1 : batchCount),
+  )?.id;
   const validation = useMemo(() => validateIban(validatorInput), [validatorInput]);
   const generatedValidation = useMemo(
     () => validateIban(activeProfile.banking.iban),
@@ -211,11 +265,19 @@ export default function Home() {
     }
   };
 
-  const createProfile = (index = 0) => {
+  const createProfile = (
+    index = 0,
+    overrides: {
+      scenario?: IdentityScenario;
+      caseMode?: IbanCaseMode;
+    } = {},
+  ) => {
+    const resolvedScenario = overrides.scenario ?? scenario;
+    const resolvedCaseMode = overrides.caseMode ?? caseMode;
     const iban = generateIban(
       country,
       createRandomInt(seed ? `${seed}:iban:${index}` : undefined),
-      { bankCode, account, caseMode },
+      { bankCode, account, caseMode: resolvedCaseMode },
     );
     const cityName =
       cityChoice !== "random" || regionChoice === "random"
@@ -237,7 +299,7 @@ export default function Home() {
       postalCodeOverride,
       seed,
       index,
-      scenario,
+      scenario: resolvedScenario,
     });
   };
 
@@ -371,25 +433,26 @@ export default function Home() {
     await copyText(url.toString(), "可复现配置链接已复制");
   };
 
-  const applyPreset = (
-    presetCountry: string,
-    presetScenario: IdentityScenario,
-    presetCase: IbanCaseMode,
-    presetCount: number,
-  ) => {
-    changeCountry(presetCountry);
-    setScenario(presetScenario);
-    setCaseMode(presetCase);
-    setBatchCount(presetCount);
-    setGenerateMode(presetCount > 1 ? "batch" : "single");
-    showToast("场景预设已应用");
+  const applyPreset = (preset: QuickPreset) => {
+    setScenario(preset.scenario);
+    setCaseMode(preset.caseMode);
+    setBatchCount(preset.count);
+    setGenerateMode(preset.count > 1 ? "batch" : "single");
+    setBatchPage(0);
+    setProfiles([
+      createProfile(0, {
+        scenario: preset.scenario,
+        caseMode: preset.caseMode,
+      }),
+    ]);
+    showToast(`${country.code} · ${preset.title} 已应用`);
   };
 
   const restoreLastConfiguration = () => {
     try {
-      const saved = JSON.parse(
-        localStorage.getItem("iban-devtools:last-config") ?? "{}",
-      ) as {
+      const raw = localStorage.getItem("iban-devtools:last-config");
+      if (!raw) throw new Error("NO_SAVED_CONFIGURATION");
+      const saved = JSON.parse(raw) as {
         countryCode?: string;
         scenario?: IdentityScenario;
         caseMode?: IbanCaseMode;
@@ -406,10 +469,68 @@ export default function Home() {
         setGenerateMode(saved.batchCount > 1 ? "batch" : "single");
       }
       setSeed(saved.seed ?? "");
+      const restoredCountryCode =
+        saved.countryCode && COUNTRY_MAP.has(saved.countryCode)
+          ? saved.countryCode
+          : countryCode;
+      const restoredCountry = COUNTRY_MAP.get(restoredCountryCode) ?? country;
+      const restoredSeed = saved.seed ?? "";
+      const restoredScenario = saved.scenario ?? "complete";
+      const restoredCaseMode = saved.caseMode ?? "valid";
+      const restoredIban = generateIban(
+        restoredCountry,
+        createRandomInt(restoredSeed ? `${restoredSeed}:iban:0` : undefined),
+        { caseMode: restoredCaseMode },
+      );
+      setProfiles([
+        generateSyntheticIdentity({
+          countryCode: restoredCountryCode,
+          iban: restoredIban,
+          scenario: restoredScenario,
+          seed: restoredSeed,
+        }),
+      ]);
+      setBatchPage(0);
       showToast("上次生成配置已恢复");
     } catch {
       showToast("没有可恢复的本地配置");
     }
+  };
+
+  const resetConfiguration = () => {
+    setRegionChoice("random");
+    setCityChoice("random");
+    setGenderChoice("random");
+    setAgeMode("random");
+    setExactAge(32);
+    setMinimumAge(25);
+    setMaximumAge(45);
+    setFirstNameOverride("");
+    setLastNameOverride("");
+    setStreetOverride("");
+    setPostalCodeOverride("");
+    setSeed("");
+    setScenario("complete");
+    setCaseMode("valid");
+    setBankCode("");
+    setAccount("");
+    setGenerateMode("single");
+    setBatchCount(10);
+    setFormatted(true);
+    const resetIban = generateIban(
+      country,
+      createRandomInt(),
+      { caseMode: "valid" },
+    );
+    setProfiles([
+      generateSyntheticIdentity({
+        countryCode,
+        iban: resetIban,
+        scenario: "complete",
+      }),
+    ]);
+    setBatchPage(0);
+    showToast(`${country.code} 参数已重置`);
   };
 
   const renderSegments = (value: string, spec: IbanCountrySpec) => {
@@ -486,7 +607,7 @@ export default function Home() {
                 <span className="step">PARAMETER STUDIO</span>
                 <h2>精确生成配置</h2>
               </div>
-              <span className="config-status">6 GROUPS</span>
+              <span className="config-status">7 GROUPS</span>
             </div>
 
             <div className="config-summary">
@@ -496,12 +617,36 @@ export default function Home() {
               <span>{generateMode === "single" ? "1 条" : `${batchCount} 条`}</span>
             </div>
 
-            <section className="preset-strip" aria-label="快速场景预设">
-              <button type="button" onClick={() => applyPreset("DE", "kyc", "valid", 1)}>德国 KYC</button>
-              <button type="button" onClick={() => applyPreset("FR", "sepa", "valid", 10)}>SEPA 回归</button>
-              <button type="button" onClick={() => applyPreset("GB", "payments", "bad-checksum", 1)}>支付失败</button>
-              <button type="button" onClick={() => applyPreset("NL", "database", "valid", 100)}>数据库种子</button>
-              <button type="button" onClick={restoreLastConfiguration}>恢复上次配置</button>
+            <section className="quick-start" aria-labelledby="quick-start-title">
+              <div className="quick-start-heading">
+                <div>
+                  <span>QUICK START</span>
+                  <strong id="quick-start-title">当前国家快捷场景</strong>
+                </div>
+                <small>{country.flag} {country.name} · 不会切换国家</small>
+              </div>
+              <div className="preset-strip">
+                {quickPresets.map((preset) => (
+                  <button
+                    type="button"
+                    key={preset.id}
+                    className={activePresetId === preset.id ? "active" : ""}
+                    aria-pressed={activePresetId === preset.id}
+                    onClick={() => applyPreset(preset)}
+                  >
+                    <span className="preset-icon">{preset.icon}</span>
+                    <span>
+                      <strong>{preset.title}</strong>
+                      <small>{preset.description}</small>
+                    </span>
+                    <em>{activePresetId === preset.id ? "已选择" : "应用"}</em>
+                  </button>
+                ))}
+              </div>
+              <div className="configuration-tools" aria-label="配置管理">
+                <button type="button" onClick={restoreLastConfiguration}><span>↶</span> 恢复上次</button>
+                <button type="button" onClick={resetConfiguration}><span>○</span> 重置参数</button>
+              </div>
             </section>
 
             <section className="config-group">
@@ -696,7 +841,7 @@ export default function Home() {
                 onClick={() => setIdentityAdvancedOpen(!identityAdvancedOpen)}
                 aria-expanded={identityAdvancedOpen}
               >
-                <span>03</span>
+                <span>04</span>
                 <div><strong>身份与地址覆盖</strong><small>可选；留空使用本地化随机值</small></div>
                 <b>{identityAdvancedOpen ? "−" : "+"}</b>
               </button>
@@ -728,7 +873,7 @@ export default function Home() {
 
             <section className="config-group">
               <div className="config-group-title">
-                <span>04</span>
+                <span>05</span>
                 <div><strong>生成规模</strong><small>单条预览或批量导出</small></div>
               </div>
               <div className="field">
@@ -755,7 +900,7 @@ export default function Home() {
 
             <section className="config-group">
               <div className="config-group-title">
-                <span>05</span>
+                <span>06</span>
                 <div><strong>可复现性与格式</strong><small>固定种子可重复生成同一数据</small></div>
               </div>
               <div className="field seed-field">
@@ -776,7 +921,7 @@ export default function Home() {
 
             <section className="config-group config-group-last">
               <button className="advanced-trigger" onClick={() => setAdvancedOpen(!advancedOpen)} aria-expanded={advancedOpen}>
-                <span><b>06</b> 银行字段 / 自定义 BBAN</span>
+                <span><b>07</b> 银行字段 / 自定义 BBAN</span>
                 <b>{advancedOpen ? "−" : "+"}</b>
               </button>
               {advancedOpen && (
@@ -1128,6 +1273,18 @@ export default function Home() {
             <button type="button" onClick={() => { shareConfiguration(); setCommandOpen(false); }}><strong>复制当前配置链接</strong><span>Share</span></button>
             <button type="button" onClick={() => { setTheme(theme === "light" ? "dark" : "light"); setCommandOpen(false); }}><strong>切换外观模式</strong><span>{theme}</span></button>
           </div>
+        </div>
+      )}
+
+      {tab === "generate" && (
+        <div className="mobile-action-dock">
+          <div>
+            <span>{country.flag} {country.code} · {SCENARIOS.find((item) => item.value === scenario)?.label}</span>
+            <small>{generateMode === "single" ? "单条身份" : `${batchCount} 条批量身份`}</small>
+          </div>
+          <button type="button" disabled={isGenerating} onClick={generateMode === "single" ? regenerate : generateBatch}>
+            {isGenerating ? "生成中…" : "立即生成"}
+          </button>
         </div>
       )}
 
