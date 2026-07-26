@@ -2,13 +2,12 @@
 
 import { useMemo, useState } from "react";
 import {
-  DEFAULT_GERMAN_PROFILE,
-  GERMAN_STATES,
-  generateGermanTestProfile,
-  validateGermanTaxId,
-  type GermanGender,
-  type GermanTestProfile,
-} from "@/lib/german-test-data";
+  DEFAULT_SYNTHETIC_IDENTITY,
+  generateSyntheticIdentity,
+  getIdentityCountry,
+  type ProfileGender,
+  type SyntheticIdentity,
+} from "@/lib/global-test-data";
 
 type TemplateChar = "n" | "a" | "c";
 
@@ -45,6 +44,12 @@ const COUNTRIES: CountrySpec[] = [
 
 const COUNTRY_MAP = new Map(COUNTRIES.map((country) => [country.code, country]));
 const DEFAULT_IBAN = "DE89370400440532013000";
+const AGE_OPTIONS = Array.from({ length: 63 }, (_, index) => 18 + index);
+const GENDER_OPTIONS = [
+  ["random", "随机"],
+  ["female", "女性"],
+  ["male", "男性"],
+] as const;
 
 function randomInt(max: number) {
   if (typeof crypto !== "undefined" && crypto.getRandomValues) {
@@ -167,26 +172,26 @@ function downloadFile(content: string, filename: string, type: string) {
 }
 
 export default function Home() {
-  const [tab, setTab] = useState<"generate" | "validate" | "german">("generate");
+  const [tab, setTab] = useState<"generate" | "validate">("generate");
   const [generateMode, setGenerateMode] = useState<"single" | "batch">("single");
   const [countryCode, setCountryCode] = useState("DE");
+  const [cityChoice, setCityChoice] = useState("random");
+  const [genderChoice, setGenderChoice] = useState<ProfileGender | "random">("random");
+  const [ageChoice, setAgeChoice] = useState<number | "random">("random");
   const [formatted, setFormatted] = useState(true);
   const [bankCode, setBankCode] = useState("");
   const [account, setAccount] = useState("");
   const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [iban, setIban] = useState(DEFAULT_IBAN);
   const [batchCount, setBatchCount] = useState(10);
-  const [batch, setBatch] = useState<string[]>([]);
-  const [validatorInput, setValidatorInput] = useState(DEFAULT_IBAN);
-  const [germanCount, setGermanCount] = useState(1);
-  const [germanState, setGermanState] = useState("random");
-  const [germanGender, setGermanGender] = useState<GermanGender | "random">("random");
-  const [germanProfiles, setGermanProfiles] = useState<GermanTestProfile[]>([
-    DEFAULT_GERMAN_PROFILE,
+  const [profiles, setProfiles] = useState<SyntheticIdentity[]>([
+    DEFAULT_SYNTHETIC_IDENTITY,
   ]);
+  const [validatorInput, setValidatorInput] = useState(DEFAULT_IBAN);
   const [toast, setToast] = useState("");
 
   const country = COUNTRY_MAP.get(countryCode) ?? COUNTRIES[0];
+  const identityCountry = getIdentityCountry(countryCode);
+  const activeProfile = profiles[0] ?? DEFAULT_SYNTHETIC_IDENTITY;
   const validation = useMemo(() => validateIban(validatorInput), [validatorInput]);
   const showToast = (message: string) => {
     setToast(message);
@@ -204,111 +209,129 @@ export default function Home() {
 
   const regenerate = () => {
     const next = generateIban(country, bankCode, account);
-    setIban(next);
+    setProfiles([
+      generateSyntheticIdentity({
+        countryCode,
+        iban: next,
+        cityName: cityChoice,
+        genderChoice,
+        ageChoice,
+      }),
+    ]);
+    showToast("完整测试身份已生成");
   };
 
   const changeCountry = (code: string) => {
     const nextCountry = COUNTRY_MAP.get(code) ?? COUNTRIES[0];
+    const nextIban = generateIban(nextCountry);
     setCountryCode(code);
+    setCityChoice("random");
     setBankCode("");
     setAccount("");
-    setIban(generateIban(nextCountry));
-    setBatch([]);
+    setProfiles([
+      generateSyntheticIdentity({
+        countryCode: code,
+        iban: nextIban,
+        genderChoice,
+        ageChoice,
+      }),
+    ]);
   };
 
   const generateBatch = () => {
-    const next = Array.from({ length: batchCount }, () =>
-      generateIban(country, bankCode, account),
-    );
-    setBatch(next);
-    showToast(`已生成 ${batchCount} 条测试数据`);
+    const nextProfiles = Array.from({ length: batchCount }, (_, index) => {
+      const nextIban = generateIban(country, bankCode, account);
+      return generateSyntheticIdentity({
+        countryCode,
+        iban: nextIban,
+        cityName: cityChoice,
+        genderChoice,
+        ageChoice,
+        index,
+      });
+    });
+    setProfiles(nextProfiles);
+    showToast(`已生成 ${batchCount} 条完整测试身份`);
+  };
+
+  const changeGenerateMode = (mode: "single" | "batch") => {
+    setGenerateMode(mode);
+    if (mode === "single" && profiles.length > 1) {
+      setProfiles([
+        generateSyntheticIdentity({
+          countryCode,
+          iban: generateIban(country, bankCode, account),
+          cityName: cityChoice,
+          genderChoice,
+          ageChoice,
+        }),
+      ]);
+    }
   };
 
   const displayIban = (value: string) => (formatted ? formatIban(value) : value);
-  const germanProfile = germanProfiles[0] ?? DEFAULT_GERMAN_PROFILE;
 
   const exportJson = () => {
-    const data = batch.map((value, index) => ({
-      id: index + 1,
-      country: country.code,
-      iban: formatted ? formatIban(value) : value,
-      valid: true,
-    }));
-    downloadFile(JSON.stringify(data, null, 2), `iban-${country.code.toLowerCase()}.json`, "application/json");
-    showToast("JSON 已导出");
+    downloadFile(
+      JSON.stringify(profiles, null, 2),
+      `test-identities-${country.code.toLowerCase()}.json`,
+      "application/json",
+    );
+    showToast("完整身份 JSON 已导出");
   };
 
   const exportCsv = () => {
-    const rows = ["id,country,iban,valid", ...batch.map((value, index) =>
-      `${index + 1},${country.code},"${formatted ? formatIban(value) : value}",true`,
-    )];
-    downloadFile(rows.join("\n"), `iban-${country.code.toLowerCase()}.csv`, "text/csv;charset=utf-8");
-    showToast("CSV 已导出");
-  };
-
-  const generateGermanProfiles = () => {
-    const profiles = Array.from({ length: germanCount }, (_, index) =>
-      generateGermanTestProfile(germanState, germanGender, index),
-    );
-    setGermanProfiles(profiles);
-    showToast(`已生成 ${germanCount} 条德国测试身份`);
-  };
-
-  const exportGermanJson = () => {
-    downloadFile(
-      JSON.stringify(germanProfiles, null, 2),
-      "german-test-identities.json",
-      "application/json",
-    );
-    showToast("德国测试身份 JSON 已导出");
-  };
-
-  const exportGermanCsv = () => {
     const escapeCsv = (value: string) => `"${value.replaceAll('"', '""')}"`;
     const header = [
       "id",
+      "country",
       "taxId",
-      "firstName",
-      "lastName",
+      "fullName",
       "birthDate",
+      "age",
       "gender",
-      "birthPlace",
-      "street",
-      "houseNumber",
+      "email",
+      "phone",
+      "address",
       "postalCode",
       "city",
-      "state",
-      "phone",
-      "healthInsuranceNumber",
-      "bankIban",
-      "employerTaxNumber",
+      "region",
+      "insuranceNumber",
+      "iban",
+      "bic",
+      "cardNumber",
+      "employer",
+      "jobTitle",
     ].join(",");
-    const rows = germanProfiles.map((profile) =>
+    const rows = profiles.map((profile) =>
       [
         profile.id,
-        profile.taxId,
-        profile.firstName,
-        profile.lastName,
-        profile.birthDate,
-        profile.gender,
-        profile.birthPlace,
-        profile.address.street,
-        profile.address.houseNumber,
+        profile.country.code,
+        profile.government.taxId,
+        profile.personal.fullName,
+        profile.personal.birthDate,
+        String(profile.personal.age),
+        profile.personal.gender,
+        profile.contact.email,
+        profile.contact.phone,
+        profile.address.formatted,
         profile.address.postalCode,
         profile.address.city,
-        profile.address.state,
-        profile.phone,
-        profile.healthInsuranceNumber,
-        profile.bankIban,
-        profile.employerTaxNumber,
+        profile.address.region,
+        profile.government.insuranceNumber,
+        profile.banking.iban,
+        profile.banking.bic,
+        profile.banking.card.number,
+        profile.employment.employer,
+        profile.employment.jobTitle,
       ].map(escapeCsv).join(","),
     );
     downloadFile(
       [header, ...rows].join("\n"),
-      "german-test-identities.csv",
+      `test-identities-${country.code.toLowerCase()}.csv`,
       "text/csv;charset=utf-8",
     );
-    showToast("德国测试身份 CSV 已导出");
+    showToast("完整身份 CSV 已导出");
   };
 
   const renderSegments = (value: string, spec: CountrySpec) => {
@@ -349,9 +372,9 @@ export default function Home() {
 
       <section className="intro">
         <div>
-          <p className="eyebrow">ISO 13616 · MOD-97</p>
-          <h1>IBAN 测试数据，<em>即刻可用。</em></h1>
-          <p className="lede">在浏览器内生成、批量导出并校验合法格式的 IBAN。无请求、无存储，专为开发与自动化测试设计。</p>
+          <p className="eyebrow">COMPLETE SYNTHETIC IDENTITY · IBAN</p>
+          <h1>一个身份，<em>所有测试数据。</em></h1>
+          <p className="lede">选择国家、城市、性别与年龄，一次生成本地化姓名、地址、联系方式、税务与保险字段、银行账户、IBAN 和沙盒银行卡。</p>
           <div className="platform-row" aria-label="支持的部署平台">
             <span className="platform-label">DEPLOY ANYWHERE</span>
             <span className="platform-chip vercel-chip"><b>▲</b> Vercel</span>
@@ -360,9 +383,9 @@ export default function Home() {
           </div>
         </div>
         <div className="intro-stat" aria-label="性能指标">
-          <span>GENERATION</span>
-          <strong>&lt; 1ms</strong>
-          <small>per IBAN · local</small>
+          <span>COUNTRIES</span>
+          <strong>15</strong>
+          <small>one complete profile</small>
         </div>
       </section>
 
@@ -372,9 +395,6 @@ export default function Home() {
         </button>
         <button className={tab === "validate" ? "active" : ""} onClick={() => setTab("validate")}>
           <span>02</span> 校验与解析
-        </button>
-        <button className={tab === "german" ? "active" : ""} onClick={() => setTab("german")}>
-          <span>03</span> 德国测试身份
         </button>
       </nav>
 
@@ -401,16 +421,70 @@ export default function Home() {
                 </select>
                 <span>⌄</span>
               </div>
-              <small>{country.length} 位 · BBAN {country.bbanTemplate.length} 位</small>
+              <small>{country.length} 位 IBAN · 同步本地化身份字段</small>
+            </div>
+
+            <div className="field">
+              <label htmlFor="identity-city">地区 / 城市</label>
+              <div className="select-wrap">
+                <select
+                  id="identity-city"
+                  value={cityChoice}
+                  onChange={(event) => setCityChoice(event.target.value)}
+                >
+                  <option value="random">🎲 随机城市</option>
+                  {identityCountry.cities.map((city) => (
+                    <option key={city.name} value={city.name}>
+                      {city.name} — {city.region}
+                    </option>
+                  ))}
+                </select>
+                <span>⌄</span>
+              </div>
+            </div>
+
+            <div className="identity-filter-row">
+              <div className="field">
+                <label>性别</label>
+                <div className="segmented segmented-three">
+                  {GENDER_OPTIONS.map(([value, label]) => (
+                    <button
+                      key={value}
+                      className={genderChoice === value ? "active" : ""}
+                      onClick={() => setGenderChoice(value as ProfileGender | "random")}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="field">
+                <label htmlFor="identity-age">年龄</label>
+                <div className="select-wrap">
+                  <select
+                    id="identity-age"
+                    value={ageChoice}
+                    onChange={(event) =>
+                      setAgeChoice(event.target.value === "random" ? "random" : Number(event.target.value))
+                    }
+                  >
+                    <option value="random">随机 18–80</option>
+                    {AGE_OPTIONS.map((age) => (
+                      <option key={age} value={age}>{age} 岁</option>
+                    ))}
+                  </select>
+                  <span>⌄</span>
+                </div>
+              </div>
             </div>
 
             <div className="field">
               <label>生成模式</label>
               <div className="segmented">
-                <button className={generateMode === "single" ? "active" : ""} onClick={() => setGenerateMode("single")}>
+                <button className={generateMode === "single" ? "active" : ""} onClick={() => changeGenerateMode("single")}>
                   单条
                 </button>
-                <button className={generateMode === "batch" ? "active" : ""} onClick={() => setGenerateMode("batch")}>
+                <button className={generateMode === "batch" ? "active" : ""} onClick={() => changeGenerateMode("batch")}>
                   批量
                 </button>
               </div>
@@ -436,7 +510,7 @@ export default function Home() {
               <div className="field">
                 <label>生成数量</label>
                 <div className="count-options">
-                  {[5, 10, 50, 100, 1000].map((count) => (
+                  {[5, 10, 20, 25, 50].map((count) => (
                     <button key={count} className={batchCount === count ? "active" : ""} onClick={() => setBatchCount(count)}>
                       {count}
                     </button>
@@ -478,79 +552,152 @@ export default function Home() {
             </div>
 
             <button className="primary-action" onClick={generateMode === "single" ? regenerate : generateBatch}>
-              <span>{generateMode === "single" ? "生成新 IBAN" : `生成 ${batchCount} 条 IBAN`}</span>
+              <span>{generateMode === "single" ? "生成完整测试身份" : `生成 ${batchCount} 条完整身份`}</span>
               <b>↗</b>
             </button>
           </aside>
 
-          <div className="result-panel">
+          <div className="result-panel identity-results">
             {generateMode === "single" ? (
               <>
                 <div className="result-topline">
-                  <span className="step">OUTPUT / SINGLE</span>
-                  <span className="valid-chip"><i /> MOD-97 VALID</span>
+                  <span className="step">OUTPUT / COMPLETE IDENTITY</span>
+                  <span className="valid-chip"><i /> SYNTHETIC · LOCAL</span>
                 </div>
-                <div className="iban-display">
-                  <span className="country-tag">{country.flag} {country.code}</span>
-                  <p>{displayIban(iban)}</p>
+
+                <div className="profile-heading identity-profile-heading">
+                  <div className="profile-avatar">{activeProfile.country.flag}</div>
+                  <div>
+                    <span>{activeProfile.country.code} TEST PERSON</span>
+                    <h2>{activeProfile.personal.fullName}</h2>
+                    <p>{activeProfile.personal.age} 岁 · {activeProfile.address.city} · {activeProfile.address.region}</p>
+                  </div>
+                  <button
+                    onClick={() =>
+                      copyText(JSON.stringify(activeProfile, null, 2), "完整身份 JSON 已复制")
+                    }
+                  >
+                    复制完整 JSON
+                  </button>
+                </div>
+
+                <div className="iban-display identity-iban-display">
+                  <span className="country-tag">{country.flag} {country.code} · MOD-97 VALID</span>
+                  <p>{displayIban(activeProfile.banking.iban)}</p>
                   <div className="result-actions">
-                    <button onClick={() => copyText(displayIban(iban))}>复制 <span>⌘C</span></button>
-                    <button className="icon-button" onClick={regenerate} aria-label="重新生成">↻</button>
+                    <button onClick={() => copyText(displayIban(activeProfile.banking.iban), "IBAN 已复制")}>
+                      复制 IBAN <span>⌘C</span>
+                    </button>
+                    <button className="icon-button" onClick={regenerate} aria-label="重新生成完整测试身份">↻</button>
                   </div>
                 </div>
 
-                <div className="structure">
+                <div className="profile-grid global-profile-grid">
+                  <article className="profile-card">
+                    <div className="profile-card-title"><span>01</span><h3>个人身份</h3></div>
+                    <dl>
+                      <div><dt>出生日期</dt><dd>{activeProfile.personal.birthDate}</dd></div>
+                      <div><dt>年龄 / 性别</dt><dd>{activeProfile.personal.age} · {activeProfile.personal.gender === "female" ? "女性" : "男性"}</dd></div>
+                      <div><dt>出生地</dt><dd>{activeProfile.personal.birthPlace}</dd></div>
+                      <div><dt>测试证件号</dt><dd className="mono-value">{activeProfile.personal.documentNumber}</dd></div>
+                    </dl>
+                  </article>
+
+                  <article className="profile-card">
+                    <div className="profile-card-title"><span>02</span><h3>地址与联系</h3></div>
+                    <dl>
+                      <div><dt>完整地址</dt><dd>{activeProfile.address.formatted}</dd></div>
+                      <div><dt>地区</dt><dd>{activeProfile.address.region}</dd></div>
+                      <div><dt>手机号码</dt><dd>{activeProfile.contact.phone}</dd></div>
+                      <div><dt>测试邮箱</dt><dd>{activeProfile.contact.email}</dd></div>
+                    </dl>
+                  </article>
+
+                  <article className="profile-card">
+                    <div className="profile-card-title"><span>03</span><h3>银行账户与银行卡</h3></div>
+                    <dl>
+                      <div><dt>银行</dt><dd>{activeProfile.banking.bankName}</dd></div>
+                      <div><dt>BIC / SWIFT</dt><dd className="mono-value">{activeProfile.banking.bic}</dd></div>
+                      <div><dt>银行账号</dt><dd className="mono-value">{activeProfile.banking.accountNumber}</dd></div>
+                      <div><dt>沙盒卡号</dt><dd className="mono-value">{activeProfile.banking.card.number}</dd></div>
+                      <div><dt>有效期 / CVC</dt><dd>{activeProfile.banking.card.expiry} · {activeProfile.banking.card.cvc}</dd></div>
+                    </dl>
+                  </article>
+
+                  <article className="profile-card">
+                    <div className="profile-card-title"><span>04</span><h3>税务、保险与雇佣</h3></div>
+                    <dl>
+                      <div><dt>{activeProfile.government.taxLabel}</dt><dd className="mono-value">{activeProfile.government.taxId}</dd></div>
+                      <div><dt>税号质量</dt><dd className="positive-value">{activeProfile.government.taxStatus === "checksum-valid" ? "校验码通过" : "格式测试值"}</dd></div>
+                      <div><dt>{activeProfile.government.insuranceLabel}</dt><dd className="mono-value">{activeProfile.government.insuranceNumber}</dd></div>
+                      <div><dt>测试雇主</dt><dd>{activeProfile.employment.employer}</dd></div>
+                      <div><dt>职位 / 工号</dt><dd>{activeProfile.employment.jobTitle} · {activeProfile.employment.employeeId}</dd></div>
+                    </dl>
+                  </article>
+                </div>
+
+                <div className="structure compact-structure">
                   <div className="section-title">
-                    <h3>结构解析</h3>
-                    <span>{iban.length} characters</span>
+                    <h3>IBAN 结构</h3>
+                    <span>{activeProfile.banking.iban.length} characters</span>
                   </div>
-                  {renderSegments(iban, country)}
+                  {renderSegments(activeProfile.banking.iban, country)}
                   <div className="legend">
                     <span><i className="dot-country" /> 国家代码</span>
                     <span><i className="dot-check" /> 校验码</span>
                     <span><i className="dot-bank" /> 银行代码</span>
                     <span><i className="dot-account" /> 账号</span>
-                    <span><i className="dot-extra" /> 其他 BBAN</span>
                   </div>
                 </div>
 
-                <div className="regex-card">
+                <div className="identity-export-bar">
+                  <p><strong>一次生成，字段相互对应</strong> · 银行卡为公开沙盒测试卡，不可真实扣款</p>
                   <div>
-                    <span className="step">FORMAT REGEX</span>
-                    <code>/{countryRegex(country)}/</code>
+                    <button onClick={() => copyText(countryRegex(country), "IBAN 正则已复制")}>复制正则</button>
+                    <button onClick={exportJson}>JSON ↓</button>
+                    <button onClick={exportCsv}>CSV ↓</button>
                   </div>
-                  <button onClick={() => copyText(countryRegex(country), "正则表达式已复制")}>复制正则</button>
                 </div>
               </>
             ) : (
               <>
                 <div className="result-topline">
-                  <span className="step">OUTPUT / BATCH</span>
-                  <span className="batch-meta">{batch.length || batchCount} rows · {country.code}</span>
+                  <span className="step">OUTPUT / COMPLETE IDENTITY BATCH</span>
+                  <span className="batch-meta">{profiles.length > 1 ? profiles.length : batchCount} rows · {country.code}</span>
                 </div>
-                {batch.length === 0 ? (
+                {profiles.length <= 1 ? (
                   <div className="empty-state">
                     <span>[ ]</span>
-                    <h3>批量数据尚未生成</h3>
-                    <p>选择数量后点击左侧按钮，结果会在这里出现。</p>
+                    <h3>完整身份批次尚未生成</h3>
+                    <p>选择数量后点击左侧按钮，每一行都会包含人物、地址、税务、保险与银行字段。</p>
                   </div>
                 ) : (
                   <>
-                    <div className="batch-toolbar">
-                      <p><strong>{batch.length}</strong> 条结果 <span>全部通过 MOD-97</span></p>
+                    <div className="batch-toolbar identity-batch-toolbar">
+                      <p><strong>{profiles.length}</strong> 条完整身份 <span>IBAN 全部通过 MOD-97</span></p>
                       <div>
-                        <button onClick={() => copyText(batch.map(displayIban).join("\n"), "全部 IBAN 已复制")}>复制全部</button>
+                        <button onClick={() => copyText(JSON.stringify(profiles, null, 2), "全部身份 JSON 已复制")}>复制全部</button>
                         <button onClick={exportJson}>JSON ↓</button>
                         <button onClick={exportCsv}>CSV ↓</button>
                       </div>
                     </div>
-                    <div className="batch-list">
-                      {batch.map((value, index) => (
-                        <div className="batch-row" key={`${value}-${index}`}>
+                    <div className="identity-batch-list">
+                      {profiles.map((profile, index) => (
+                        <article className="identity-batch-row" key={profile.id}>
                           <span>{String(index + 1).padStart(2, "0")}</span>
-                          <code>{displayIban(value)}</code>
-                          <button onClick={() => copyText(displayIban(value))} aria-label={`复制第 ${index + 1} 条`}>⧉</button>
-                        </div>
+                          <div>
+                            <strong>{profile.country.flag} {profile.personal.fullName}</strong>
+                            <small>{profile.personal.age} 岁 · {profile.address.postalCode} {profile.address.city}</small>
+                          </div>
+                          <code>{profile.government.taxId}</code>
+                          <code>{displayIban(profile.banking.iban)}</code>
+                          <button
+                            onClick={() => copyText(JSON.stringify(profile, null, 2), `第 ${index + 1} 条身份已复制`)}
+                            aria-label={`复制第 ${index + 1} 条完整身份`}
+                          >
+                            ⧉
+                          </button>
+                        </article>
                       ))}
                     </div>
                   </>
@@ -559,7 +706,7 @@ export default function Home() {
             )}
           </div>
         </section>
-      ) : tab === "validate" ? (
+      ) : (
         <section className="validator-layout">
           <div className="validator-input-card">
             <div className="panel-heading">
@@ -622,213 +769,11 @@ export default function Home() {
             )}
           </div>
         </section>
-      ) : (
-        <section className="workspace identity-workspace">
-          <aside className="config-panel">
-            <div className="panel-heading">
-              <div>
-                <span className="step">DE TEST DATA</span>
-                <h2>身份生成配置</h2>
-              </div>
-              <span className="config-status">Local</span>
-            </div>
-
-            <div className="field">
-              <label htmlFor="german-state">指定联邦州</label>
-              <div className="select-wrap">
-                <select
-                  id="german-state"
-                  value={germanState}
-                  onChange={(event) => setGermanState(event.target.value)}
-                >
-                  <option value="random">🎲 随机联邦州</option>
-                  {GERMAN_STATES.map((state) => (
-                    <option key={state.code} value={state.code}>
-                      {state.name} — {state.code}
-                    </option>
-                  ))}
-                </select>
-                <span>⌄</span>
-              </div>
-              <small>覆盖德国全部 16 个联邦州</small>
-            </div>
-
-            <div className="field">
-              <label>性别</label>
-              <div className="segmented segmented-three">
-                {[
-                  ["random", "随机"],
-                  ["female", "女性"],
-                  ["male", "男性"],
-                ].map(([value, label]) => (
-                  <button
-                    key={value}
-                    className={germanGender === value ? "active" : ""}
-                    onClick={() => setGermanGender(value as GermanGender | "random")}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="field">
-              <label>生成数量</label>
-              <div className="count-options">
-                {[1, 5, 10, 25, 50].map((count) => (
-                  <button
-                    key={count}
-                    className={germanCount === count ? "active" : ""}
-                    onClick={() => setGermanCount(count)}
-                  >
-                    {count}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="identity-algorithm">
-              <span className="step">CHECKSUM</span>
-              <strong>ISO/IEC 7064</strong>
-              <p>Steuer-ID 使用 MOD 11,10 校验；德国 IBAN 使用 MOD-97 校验。</p>
-            </div>
-
-            <button className="primary-action" onClick={generateGermanProfiles}>
-              <span>生成 {germanCount} 条测试身份</span>
-              <b>↗</b>
-            </button>
-          </aside>
-
-          <div className="result-panel identity-results">
-            <div className="result-topline">
-              <span className="step">
-                OUTPUT / {germanProfiles.length === 1 ? "PROFILE" : "BATCH"}
-              </span>
-              <span className="valid-chip"><i /> SYNTHETIC DATA</span>
-            </div>
-
-            {germanProfiles.length === 1 ? (
-              <>
-                <div className="tax-id-hero">
-                  <div>
-                    <span>STEUERLICHE IDENTIFIKATIONSNUMMER</span>
-                    <p>{germanProfile.taxId}</p>
-                  </div>
-                  <div className="tax-id-actions">
-                    <span className={validateGermanTaxId(germanProfile.taxId) ? "verified" : ""}>
-                      ✓ MOD 11,10
-                    </span>
-                    <button onClick={() => copyText(germanProfile.taxId, "Steuer-ID 已复制")}>
-                      复制税号
-                    </button>
-                    <button onClick={generateGermanProfiles} aria-label="重新生成德国测试身份">↻</button>
-                  </div>
-                </div>
-
-                <div className="profile-heading">
-                  <div className="profile-avatar">
-                    {germanProfile.firstName[0]}{germanProfile.lastName[0]}
-                  </div>
-                  <div>
-                    <span>TEST PERSON</span>
-                    <h2>{germanProfile.firstName} {germanProfile.lastName}</h2>
-                    <p>{germanProfile.address.city} · {germanProfile.address.state}</p>
-                  </div>
-                  <button
-                    onClick={() =>
-                      copyText(JSON.stringify(germanProfile, null, 2), "完整 JSON 已复制")
-                    }
-                  >
-                    复制 JSON
-                  </button>
-                </div>
-
-                <div className="profile-grid">
-                  <article className="profile-card">
-                    <div className="profile-card-title"><span>01</span><h3>个人信息</h3></div>
-                    <dl>
-                      <div><dt>出生日期</dt><dd>{germanProfile.birthDate}</dd></div>
-                      <div><dt>性别</dt><dd>{germanProfile.gender === "female" ? "weiblich" : "männlich"}</dd></div>
-                      <div><dt>出生地</dt><dd>{germanProfile.birthPlace}</dd></div>
-                    </dl>
-                  </article>
-
-                  <article className="profile-card">
-                    <div className="profile-card-title"><span>02</span><h3>地址与联系</h3></div>
-                    <dl>
-                      <div><dt>地址</dt><dd>{germanProfile.address.street} {germanProfile.address.houseNumber}</dd></div>
-                      <div><dt>城市邮编</dt><dd>{germanProfile.address.postalCode} {germanProfile.address.city}</dd></div>
-                      <div><dt>手机号码</dt><dd>{germanProfile.phone}</dd></div>
-                    </dl>
-                  </article>
-
-                  <article className="profile-card">
-                    <div className="profile-card-title"><span>03</span><h3>银行与保险</h3></div>
-                    <dl>
-                      <div><dt>德国 IBAN</dt><dd className="mono-value">{formatIban(germanProfile.bankIban)}</dd></div>
-                      <div><dt>IBAN 校验</dt><dd className="positive-value">MOD-97 通过</dd></div>
-                      <div><dt>保险测试号</dt><dd>{germanProfile.healthInsuranceNumber}</dd></div>
-                    </dl>
-                  </article>
-
-                  <article className="profile-card">
-                    <div className="profile-card-title"><span>04</span><h3>雇主测试数据</h3></div>
-                    <dl>
-                      <div><dt>联邦州</dt><dd>{germanProfile.address.state}</dd></div>
-                      <div><dt>标准税号</dt><dd className="mono-value">{germanProfile.employerTaxNumber}</dd></div>
-                      <div><dt>数据标识</dt><dd>{germanProfile.id}</dd></div>
-                    </dl>
-                  </article>
-                </div>
-
-                <div className="identity-export-bar">
-                  <p><strong>仅供开发测试</strong> · 所有字段均由浏览器即时合成</p>
-                  <div>
-                    <button onClick={exportGermanJson}>JSON ↓</button>
-                    <button onClick={exportGermanCsv}>CSV ↓</button>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="batch-toolbar identity-batch-toolbar">
-                  <p><strong>{germanProfiles.length}</strong> 条德国测试身份 <span>Steuer-ID 校验通过</span></p>
-                  <div>
-                    <button onClick={() => copyText(JSON.stringify(germanProfiles, null, 2), "全部数据已复制")}>
-                      复制全部
-                    </button>
-                    <button onClick={exportGermanJson}>JSON ↓</button>
-                    <button onClick={exportGermanCsv}>CSV ↓</button>
-                  </div>
-                </div>
-                <div className="identity-batch-list">
-                  {germanProfiles.map((profile, index) => (
-                    <article key={profile.id} className="identity-batch-row">
-                      <span>{String(index + 1).padStart(2, "0")}</span>
-                      <div>
-                        <strong>{profile.firstName} {profile.lastName}</strong>
-                        <small>{profile.address.postalCode} {profile.address.city}</small>
-                      </div>
-                      <code>{profile.taxId}</code>
-                      <code>{formatIban(profile.bankIban)}</code>
-                      <button
-                        onClick={() => copyText(JSON.stringify(profile, null, 2), `第 ${index + 1} 条 JSON 已复制`)}
-                        aria-label={`复制第 ${index + 1} 条德国测试身份`}
-                      >
-                        ⧉
-                      </button>
-                    </article>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        </section>
       )}
 
       <footer>
         <div className="footer-mark">IB</div>
-        <p>本工具生成的 IBAN 与德国身份字段仅供软件开发、测试和教学使用。格式与校验码通过不代表真实银行账户、真实个人或官方签发记录。</p>
+        <p>本工具生成的跨国身份、IBAN、保险与银行卡字段仅供软件开发、测试和教学使用。格式或校验码通过不代表真实账户、真实个人或官方签发记录。</p>
         <a href="https://github.com/tianrking/iban-devtools" target="_blank" rel="noreferrer">SOURCE ON GITHUB ↗</a>
       </footer>
 

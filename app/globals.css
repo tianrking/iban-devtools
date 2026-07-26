@@ -1053,37 +1053,19 @@ main {
   grid-template-columns: repeat(3, 1fr);
 }
 
-.identity-workspace {
-  min-height: 700px;
+.identity-filter-row {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 10px;
 }
 
-.identity-algorithm {
-  margin: 0 0 26px;
-  padding: 17px;
-  border: 1px solid #303c37;
-  border-radius: 8px;
-  background:
-    radial-gradient(circle at 100% 0, rgba(201, 244, 107, 0.08), transparent 9rem),
-    #0d1311;
+.identity-filter-row .field {
+  min-width: 0;
 }
 
-.identity-algorithm .step {
-  display: block;
-  margin-bottom: 8px;
-  color: #82908a;
-}
-
-.identity-algorithm strong {
-  display: block;
-  color: var(--lime);
-  font: 650 14px/1 var(--font-geist-mono), monospace;
-}
-
-.identity-algorithm p {
-  margin: 10px 0 0;
-  color: #82908a;
-  font-size: 10px;
-  line-height: 1.6;
+.identity-filter-row .segmented button {
+  padding-inline: 4px;
+  font-size: 9px;
 }
 
 .identity-results {
@@ -1093,60 +1075,63 @@ main {
     white;
 }
 
-.tax-id-hero {
-  min-height: 150px;
-  margin: 28px 0 20px;
-  padding: 27px 28px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 24px;
+.identity-profile-heading {
+  margin: 28px 0 12px;
+}
+
+.identity-profile-heading .profile-avatar {
+  font-size: 19px;
+}
+
+.identity-iban-display {
+  margin: 18px 0 16px;
+  padding: 20px 22px;
   border: 1px solid #28322f;
-  border-radius: 12px;
+  border-radius: 11px;
   background:
-    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    radial-gradient(circle at 100% 0, rgba(201, 244, 107, 0.12), transparent 16rem),
+    radial-gradient(circle at 100% 0, rgba(201, 244, 107, 0.1), transparent 17rem),
     var(--dark);
-  background-size: 100% 24px, auto, auto;
   color: white;
 }
 
-.tax-id-hero > div:first-child > span {
-  color: #8f9d97;
-  font: 650 8px/1 var(--font-geist-mono), monospace;
-  letter-spacing: 0.12em;
+.identity-iban-display .country-tag {
+  border-color: #3e4945;
+  color: #b8c4be;
 }
 
-.tax-id-hero p {
-  margin: 13px 0 0;
-  color: #f6f9f6;
-  font: 560 clamp(27px, 3.7vw, 43px)/1 var(--font-geist-mono), monospace;
-  letter-spacing: 0.08em;
+.identity-iban-display p {
+  margin: 14px 0 18px;
+  color: white;
+  font-size: clamp(23px, 3vw, 35px);
 }
 
-.tax-id-actions {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
-.tax-id-actions > span {
-  padding: 7px 9px;
-  border: 1px solid #3d4a45;
-  border-radius: 99px;
-  color: #8f9c97;
-  font: 600 8px/1 var(--font-geist-mono), monospace;
-}
-
-.tax-id-actions > span.verified {
-  border-color: rgba(201, 244, 107, 0.25);
-  background: rgba(201, 244, 107, 0.08);
+.identity-iban-display .result-actions button:not(:first-child) {
+  border-color: #3d4844;
+  background: #222b28;
   color: var(--lime);
 }
 
-.tax-id-actions button,
+.global-profile-grid {
+  margin-bottom: 10px;
+}
+
+.global-profile-grid .profile-card {
+  min-height: 214px;
+}
+
+.compact-structure {
+  padding-block: 18px;
+}
+
+.compact-structure .segment-value {
+  margin: 16px 0 13px;
+}
+
+.compact-structure .segment-value span {
+  padding-block: 9px;
+  font-size: clamp(11px, 1.4vw, 15px);
+}
+
 .profile-heading button,
 .identity-export-bar button {
   height: 34px;
@@ -1157,13 +1142,6 @@ main {
   color: white;
   font-size: 9px;
   font-weight: 750;
-}
-
-.tax-id-actions button:last-child {
-  width: 34px;
-  padding: 0;
-  color: var(--lime);
-  font-size: 16px;
 }
 
 .profile-heading {
@@ -1473,9 +1451,6 @@ footer > a:hover {
     margin-top: 4px;
   }
 
-  .identity-workspace {
-    min-height: 0;
-  }
 }
 
 @media (max-width: 580px) {
@@ -1544,14 +1519,9 @@ footer > a:hover {
     grid-template-columns: 1fr;
   }
 
-  .tax-id-hero {
-    align-items: flex-start;
-    flex-direction: column;
-    padding: 22px;
-  }
-
-  .tax-id-actions {
-    justify-content: flex-start;
+  .identity-filter-row {
+    grid-template-columns: 1fr;
+    gap: 0;
   }
 
   .profile-grid {

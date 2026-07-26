@@ -1,6 +1,6 @@
 # IBAN DevTools
 
-一款为开发者设计的 IBAN 与德国测试身份数据生成、批量导出及校验工具。所有计算都在浏览器本地完成，不上传、不存储任何输入。
+一款为开发者设计的完整跨国测试身份与 IBAN 生成、批量导出及校验工具。所有计算都在浏览器本地完成，不上传、不存储任何输入。
 
 [![Live Demo](https://img.shields.io/badge/Live_Demo-open-c9f46b?style=flat-square&labelColor=111817)](https://iban-devtools-lab.tian-r-king.chatgpt.site)
 [![Vercel Ready](https://img.shields.io/badge/Vercel-ready-000000?style=flat-square&logo=vercel)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Ftianrking%2Fiban-devtools)
@@ -16,9 +16,10 @@
 - 单条生成、自定义 BBAN、格式化与 Raw 输出
 - 一次生成 5–1000 条数据，支持 JSON、CSV 和剪贴板导出
 - 实时校验 IBAN，并拆解国家代码、校验码、银行代码与账号
-- 生成符合 ISO/IEC 7064 MOD 11,10 校验规则的德国 Steuer-ID
-- 合成德国姓名、生日、16 州地址、手机号、测试保险号、IBAN 与雇主税号
-- 德国测试身份支持 1–50 条批量生成及 JSON、CSV 导出
+- 选择国家、城市、性别和具体年龄，一次生成字段相互对应的完整测试身份
+- 覆盖 15 个 IBAN 国家，并同步本地化姓名、城市、邮编、街道、电话和税务字段
+- 同一份身份包含测试证件号、保险号、合法 IBAN、账户号、BIC、沙盒银行卡和雇佣信息
+- 完整身份支持 1–50 条批量生成及 JSON、CSV 导出
 - 纯前端计算，无接口请求、Cookie 或持久化存储
 - 同一套源码可部署到 Vercel、Cloudflare Workers 和 OpenAI Sites
 
@@ -74,11 +75,12 @@ npm run deploy:cloudflare
 
 ```text
 app/
-├── page.tsx         # IBAN、德国测试身份、批量导出与校验交互
+├── page.tsx         # 完整身份、IBAN、批量导出与校验交互
 ├── globals.css      # 产品视觉与响应式样式
 └── layout.tsx       # 页面元数据与社交分享
 lib/
-└── german-test-data.ts # Steuer-ID 校验与德国测试数据生成
+├── global-test-data.ts # 15 国本地化完整测试身份生成
+└── german-test-data.ts # 德国 Steuer-ID 校验算法
 public/
 └── og.png           # GitHub / Open Graph 分享预览
 worker/
@@ -98,8 +100,8 @@ IBAN 校验基于 ISO 13616：
 
 生成结果只保证格式和校验算法合法，不代表真实银行账户。
 
-德国 Steuer-ID 使用 ISO/IEC 7064 MOD 11,10 校验算法，并采用经典的十位主体数字重复规则。合成结果不来自政府、银行或保险机构，也不保证未与真实记录发生随机碰撞。
+德国 Steuer-ID 使用 ISO/IEC 7064 MOD 11,10 校验算法，并采用经典的十位主体数字重复规则。其他国家的税务与保险字段明确标记为格式测试值。沙盒银行卡为公开测试卡，不能用于真实扣款。
 
 ## 免责声明
 
-本工具生成的 IBAN 与德国身份字段仅供软件开发、测试和教学使用。格式与校验码通过不代表真实银行账户、真实个人或官方签发记录。
+本工具生成的跨国身份、IBAN、保险与银行卡字段仅供软件开发、测试和教学使用。格式或校验码通过不代表真实账户、真实个人或官方签发记录。
