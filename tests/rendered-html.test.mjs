@@ -35,6 +35,9 @@ test("server-renders the complete IBAN tool", async () => {
   assert.match(html, /校验与解析/);
   assert.match(html, /银行账户与银行卡/);
   assert.match(html, /完整测试身份/);
+  assert.match(html, /精确生成配置/);
+  assert.match(html, /随机种子/);
+  assert.match(html, /身份与地址覆盖/);
   assert.match(html, /100% 本地运行/);
   assert.match(html, /仅供软件开发、测试和教学使用/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/);

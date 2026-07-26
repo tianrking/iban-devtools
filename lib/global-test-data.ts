@@ -1,6 +1,11 @@
-import { generateGermanTaxId, validateGermanTaxId } from "./german-test-data.ts";
+import {
+  calculateGermanTaxIdCheckDigit,
+  validateGermanTaxId,
+} from "./german-test-data.ts";
 
 export type ProfileGender = "male" | "female";
+export type AgeChoice = number | "random" | { min: number; max: number };
+export type RandomInt = (max: number) => number;
 
 export type IdentityCity = {
   name: string;
@@ -308,7 +313,7 @@ const TEST_CARD_NUMBERS = [
 ];
 const JOB_TITLES = ["QA Engineer", "Frontend Developer", "Data Analyst", "Product Designer", "Test Automation Engineer"];
 
-function randomInt(max: number) {
+function secureRandomInt(max: number) {
   if (typeof crypto !== "undefined" && crypto.getRandomValues) {
     const values = new Uint32Array(1);
     crypto.getRandomValues(values);
@@ -317,16 +322,41 @@ function randomInt(max: number) {
   return Math.floor(Math.random() * max);
 }
 
-function pick<T>(items: T[]) {
+function hashSeed(value: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+export function createRandomInt(seed?: string): RandomInt {
+  if (!seed) return secureRandomInt;
+  let state = hashSeed(seed) || 0x6d2b79f5;
+  return (max: number) => {
+    state += 0x6d2b79f5;
+    let value = state;
+    value = Math.imul(value ^ (value >>> 15), value | 1);
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+    const normalized = ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+    return Math.floor(normalized * max);
+  };
+}
+
+function pick<T>(items: T[], randomInt: RandomInt) {
   return items[randomInt(items.length)];
 }
 
-function randomDigits(length: number) {
+function randomDigits(length: number, randomInt: RandomInt) {
   return Array.from({ length }, () => String(randomInt(10))).join("");
 }
 
-function randomLetters(length: number) {
-  return Array.from({ length }, () => String.fromCharCode(65 + randomInt(26))).join("");
+function randomLetters(length: number, randomInt: RandomInt) {
+  return Array.from(
+    { length },
+    () => String.fromCharCode(65 + randomInt(26)),
+  ).join("");
 }
 
 function slugifyName(value: string) {
@@ -337,7 +367,7 @@ function slugifyName(value: string) {
     .toLowerCase();
 }
 
-function generateBirthDate(age: number) {
+function generateBirthDate(age: number, randomInt: RandomInt) {
   const now = new Date();
   const month = randomInt(12);
   const day = 1 + randomInt(28);
@@ -348,43 +378,67 @@ function generateBirthDate(age: number) {
   return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
-function generateTaxId(countryCode: string, gender: ProfileGender) {
+function generateGermanTaxId(randomInt: RandomInt) {
+  const digits = Array.from({ length: 10 }, (_, index) => index);
+  const missingDigit = randomInt(10);
+  let duplicateDigit = randomInt(10);
+  while (duplicateDigit === missingDigit) duplicateDigit = randomInt(10);
+  const pool = [...digits.filter((digit) => digit !== missingDigit), duplicateDigit];
+
+  let prefix = "";
+  do {
+    const shuffled = [...pool];
+    for (let index = shuffled.length - 1; index > 0; index -= 1) {
+      const target = randomInt(index + 1);
+      [shuffled[index], shuffled[target]] = [shuffled[target], shuffled[index]];
+    }
+    prefix = shuffled.join("");
+  } while (prefix.startsWith("0"));
+
+  return `${prefix}${calculateGermanTaxIdCheckDigit(prefix)}`;
+}
+
+function generateTaxId(
+  countryCode: string,
+  gender: ProfileGender,
+  randomInt: RandomInt,
+) {
   switch (countryCode) {
     case "DE":
-      return generateGermanTaxId();
+      return generateGermanTaxId(randomInt);
     case "GB":
-      return `QQ${randomDigits(6)}${pick(["A", "B", "C", "D"])}`;
+      return `QQ${randomDigits(6, randomInt)}${pick(["A", "B", "C", "D"], randomInt)}`;
     case "ES": {
-      const body = randomDigits(8);
+      const body = randomDigits(8, randomInt);
       const letters = "TRWAGMYFPDXBNJZSQVHLCKE";
       return `${body}${letters[Number(body) % 23]}`;
     }
     case "IT":
-      return `${randomLetters(6)}${randomDigits(2)}${pick(["A", "B", "C", "D", "E", "H", "L", "M", "P", "R", "S", "T"])}${randomDigits(2)}${randomLetters(1)}${randomDigits(3)}${randomLetters(1)}`;
+      return `${randomLetters(6, randomInt)}${randomDigits(2, randomInt)}${pick(["A", "B", "C", "D", "E", "H", "L", "M", "P", "R", "S", "T"], randomInt)}${randomDigits(2, randomInt)}${randomLetters(1, randomInt)}${randomDigits(3, randomInt)}${randomLetters(1, randomInt)}`;
     case "FR":
-      return `${gender === "male" ? "1" : "2"}${randomDigits(12)}`;
+      return `${gender === "male" ? "1" : "2"}${randomDigits(12, randomInt)}`;
     case "NL":
-      return randomDigits(9);
+      return randomDigits(9, randomInt);
     case "CH":
-      return `756.${randomDigits(4)}.${randomDigits(4)}.${randomDigits(2)}`;
+      return `756.${randomDigits(4, randomInt)}.${randomDigits(4, randomInt)}.${randomDigits(2, randomInt)}`;
     case "BE":
-      return randomDigits(11);
+      return randomDigits(11, randomInt);
     case "AT":
-      return randomDigits(9);
+      return randomDigits(9, randomInt);
     case "IE":
-      return `${randomDigits(7)}${randomLetters(1)}`;
+      return `${randomDigits(7, randomInt)}${randomLetters(1, randomInt)}`;
     case "PL":
-      return randomDigits(11);
+      return randomDigits(11, randomInt);
     case "PT":
-      return randomDigits(9);
+      return randomDigits(9, randomInt);
     case "NO":
-      return randomDigits(11);
+      return randomDigits(11, randomInt);
     case "FI":
-      return `${randomDigits(6)}A${randomDigits(3)}${randomLetters(1)}`;
+      return `${randomDigits(6, randomInt)}A${randomDigits(3, randomInt)}${randomLetters(1, randomInt)}`;
     case "LU":
-      return randomDigits(13);
+      return randomDigits(13, randomInt);
     default:
-      return `${countryCode}${randomDigits(10)}`;
+      return `${countryCode}${randomDigits(10, randomInt)}`;
   }
 }
 
@@ -398,33 +452,56 @@ export function generateSyntheticIdentity({
   cityName = "random",
   genderChoice = "random",
   ageChoice = "random",
+  firstNameOverride = "",
+  lastNameOverride = "",
+  streetOverride = "",
+  postalCodeOverride = "",
+  seed = "",
   index = 0,
 }: {
   countryCode: string;
   iban: string;
   cityName?: string;
   genderChoice?: ProfileGender | "random";
-  ageChoice?: number | "random";
+  ageChoice?: AgeChoice;
+  firstNameOverride?: string;
+  lastNameOverride?: string;
+  streetOverride?: string;
+  postalCodeOverride?: string;
+  seed?: string;
   index?: number;
 }): SyntheticIdentity {
+  const randomInt = createRandomInt(seed ? `${seed}:identity:${index}` : undefined);
   const spec = getIdentityCountry(countryCode);
   const city =
     cityName === "random"
-      ? pick(spec.cities)
+      ? pick(spec.cities, randomInt)
       : spec.cities.find((item) => item.name === cityName) ?? spec.cities[0];
   const gender = genderChoice === "random"
     ? (randomInt(2) === 0 ? "male" : "female")
     : genderChoice;
-  const age = ageChoice === "random" ? 18 + randomInt(63) : ageChoice;
-  const firstName = pick(gender === "male" ? spec.maleNames : spec.femaleNames);
-  const lastName = pick(spec.lastNames);
-  const birthDate = generateBirthDate(age);
-  const street = pick(city.streets);
+  const age =
+    ageChoice === "random"
+      ? 18 + randomInt(63)
+      : typeof ageChoice === "number"
+        ? ageChoice
+        : Math.min(ageChoice.min, ageChoice.max) +
+          randomInt(Math.abs(ageChoice.max - ageChoice.min) + 1);
+  const firstName =
+    firstNameOverride.trim() ||
+    pick(gender === "male" ? spec.maleNames : spec.femaleNames, randomInt);
+  const lastName = lastNameOverride.trim() || pick(spec.lastNames, randomInt);
+  const birthDate = generateBirthDate(age, randomInt);
+  const street = streetOverride.trim() || pick(city.streets, randomInt);
   const houseNumber = String(1 + randomInt(180));
-  const taxId = generateTaxId(spec.code, gender);
+  const postalCode = postalCodeOverride.trim() || city.postalCode;
+  const taxId = generateTaxId(spec.code, gender, randomInt);
+  const stableId = seed
+    ? String(hashSeed(`${seed}:${index}`)).padStart(10, "0").slice(-8)
+    : String(Date.now() + index).slice(-8);
 
   return {
-    id: `${spec.code}-TEST-${String(Date.now() + index).slice(-8)}`,
+    id: `${spec.code}-TEST-${stableId}`,
     country: { code: spec.code, name: spec.name, flag: spec.flag },
     personal: {
       firstName,
@@ -434,20 +511,20 @@ export function generateSyntheticIdentity({
       age,
       birthDate,
       birthPlace: city.name,
-      documentNumber: `TST${spec.code}${randomDigits(7)}`,
+      documentNumber: `TST${spec.code}${randomDigits(7, randomInt)}`,
     },
     contact: {
       email: `${slugifyName(firstName)}.${slugifyName(lastName)}@${spec.emailDomain}`,
-      phone: `${spec.phonePrefix} ${randomDigits(3)} ${randomDigits(3)} ${randomDigits(4)}`,
+      phone: `${spec.phonePrefix} ${randomDigits(3, randomInt)} ${randomDigits(3, randomInt)} ${randomDigits(4, randomInt)}`,
     },
     address: {
       street,
       houseNumber,
-      postalCode: city.postalCode,
+      postalCode,
       city: city.name,
       region: city.region,
       country: spec.name,
-      formatted: `${street} ${houseNumber}, ${city.postalCode} ${city.name}, ${spec.name}`,
+      formatted: `${street} ${houseNumber}, ${postalCode} ${city.name}, ${spec.name}`,
     },
     government: {
       taxLabel: spec.taxLabel,
@@ -455,8 +532,8 @@ export function generateSyntheticIdentity({
       taxStatus: spec.code === "DE" && validateGermanTaxId(taxId) ? "checksum-valid" : "format-only",
       insuranceLabel: spec.insuranceLabel,
       insuranceNumber: spec.code === "DE"
-        ? `${lastName[0].toUpperCase()}${birthDate.slice(8, 10)}${birthDate.slice(5, 7)}${birthDate.slice(2, 4)}${randomDigits(3)}`
-        : `TEST-${spec.code}-${randomDigits(8)}`,
+        ? `${lastName[0].toUpperCase()}${birthDate.slice(8, 10)}${birthDate.slice(5, 7)}${birthDate.slice(2, 4)}${randomDigits(3, randomInt)}`
+        : `TEST-${spec.code}-${randomDigits(8, randomInt)}`,
     },
     banking: {
       bankName: `${spec.name} Test Bank`,
@@ -465,15 +542,15 @@ export function generateSyntheticIdentity({
       bic: `TSTB${spec.code}XXXXX`,
       card: {
         label: "Sandbox card",
-        number: pick(TEST_CARD_NUMBERS),
+        number: pick(TEST_CARD_NUMBERS, randomInt),
         expiry: "12/34",
         cvc: "123",
       },
     },
     employment: {
       employer: `${city.name} Demo Labs`,
-      jobTitle: pick(JOB_TITLES),
-      employeeId: `EMP-${spec.code}-${randomDigits(6)}`,
+      jobTitle: pick(JOB_TITLES, randomInt),
+      employeeId: `EMP-${spec.code}-${randomDigits(6, randomInt)}`,
     },
   };
 }

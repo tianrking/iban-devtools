@@ -43,3 +43,42 @@ test("keeps German Steuer-ID checksum-valid inside the unified identity", () => 
   assert.equal(profile.government.taxStatus, "checksum-valid");
   assert.equal(validateGermanTaxId(profile.government.taxId), true);
 });
+
+test("replays the same complete identity when a seed is supplied", () => {
+  const options = {
+    countryCode: "FR",
+    iban: "FR1420041010050500013M02606",
+    cityName: "Lyon",
+    genderChoice: "female",
+    ageChoice: { min: 28, max: 35 },
+    seed: "qa-regression-01",
+    index: 4,
+  };
+
+  const first = generateSyntheticIdentity(options);
+  const second = generateSyntheticIdentity(options);
+
+  assert.deepEqual(first, second);
+  assert.ok(first.personal.age >= 28);
+  assert.ok(first.personal.age <= 35);
+});
+
+test("applies exact identity and address overrides", () => {
+  const profile = generateSyntheticIdentity({
+    countryCode: "NL",
+    iban: "NL91ABNA0417164300",
+    cityName: "Utrecht",
+    genderChoice: "male",
+    ageChoice: 30,
+    firstNameOverride: "Test",
+    lastNameOverride: "Runner",
+    streetOverride: "Automation Lane",
+    postalCodeOverride: "9999 ZZ",
+    seed: "override-case",
+  });
+
+  assert.equal(profile.personal.fullName, "Test Runner");
+  assert.equal(profile.address.street, "Automation Lane");
+  assert.equal(profile.address.postalCode, "9999 ZZ");
+  assert.match(profile.contact.email, /^test\.runner@/);
+});

@@ -2,7 +2,6 @@
 
 一款为开发者设计的完整跨国测试身份与 IBAN 生成、批量导出及校验工具。所有计算都在浏览器本地完成，不上传、不存储任何输入。
 
-[![Live Demo](https://img.shields.io/badge/Live_Demo-open-c9f46b?style=flat-square&labelColor=111817)](https://iban-devtools-lab.tian-r-king.chatgpt.site)
 [![Vercel Ready](https://img.shields.io/badge/Vercel-ready-000000?style=flat-square&logo=vercel)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Ftianrking%2Fiban-devtools)
 [![Cloudflare Ready](https://img.shields.io/badge/Cloudflare-Workers-F48120?style=flat-square&logo=cloudflare&logoColor=white)](https://deploy.workers.cloudflare.com/?url=https://github.com/tianrking/iban-devtools)
 [![CI](https://img.shields.io/github/actions/workflow/status/tianrking/iban-devtools/ci.yml?style=flat-square&label=build)](https://github.com/tianrking/iban-devtools/actions)
@@ -14,14 +13,15 @@
 - 支持德国、法国、英国、荷兰、西班牙、意大利、瑞士等 15 个国家
 - 使用 ISO 13616 / MOD-97 算法生成合法校验码
 - 单条生成、自定义 BBAN、格式化与 Raw 输出
-- 一次生成 5–1000 条数据，支持 JSON、CSV 和剪贴板导出
+- 国家、州/地区、城市三级联动，确保本地化数据落在所选区域
+- 支持随机、指定与区间年龄策略，以及性别、姓名、街道和邮编覆盖
+- 支持固定随机种子，可稳定复现同一套回归测试数据
 - 实时校验 IBAN，并拆解国家代码、校验码、银行代码与账号
-- 选择国家、城市、性别和具体年龄，一次生成字段相互对应的完整测试身份
 - 覆盖 15 个 IBAN 国家，并同步本地化姓名、城市、邮编、街道、电话和税务字段
 - 同一份身份包含测试证件号、保险号、合法 IBAN、账户号、BIC、沙盒银行卡和雇佣信息
 - 完整身份支持 1–50 条批量生成及 JSON、CSV 导出
 - 纯前端计算，无接口请求、Cookie 或持久化存储
-- 同一套源码可部署到 Vercel、Cloudflare Workers 和 OpenAI Sites
+- 同一套源码可部署到 Vercel 和 Cloudflare Workers
 
 ## 本地开发
 

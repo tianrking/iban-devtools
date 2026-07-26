@@ -2,10 +2,13 @@
 
 import { useMemo, useState } from "react";
 import {
+  createRandomInt,
   DEFAULT_SYNTHETIC_IDENTITY,
   generateSyntheticIdentity,
   getIdentityCountry,
+  type AgeChoice,
   type ProfileGender,
+  type RandomInt,
   type SyntheticIdentity,
 } from "@/lib/global-test-data";
 
@@ -44,23 +47,18 @@ const COUNTRIES: CountrySpec[] = [
 
 const COUNTRY_MAP = new Map(COUNTRIES.map((country) => [country.code, country]));
 const DEFAULT_IBAN = "DE89370400440532013000";
-const AGE_OPTIONS = Array.from({ length: 63 }, (_, index) => 18 + index);
 const GENDER_OPTIONS = [
   ["random", "随机"],
   ["female", "女性"],
   ["male", "男性"],
 ] as const;
+const AGE_MODES = [
+  ["random", "随机"],
+  ["exact", "指定"],
+  ["range", "区间"],
+] as const;
 
-function randomInt(max: number) {
-  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
-    const values = new Uint32Array(1);
-    crypto.getRandomValues(values);
-    return values[0] % max;
-  }
-  return Math.floor(Math.random() * max);
-}
-
-function randomChar(type: TemplateChar) {
+function randomChar(type: TemplateChar, randomInt: RandomInt) {
   if (type === "n") return String(randomInt(10));
   if (type === "a") return String.fromCharCode(65 + randomInt(26));
   return randomInt(2) === 0
@@ -95,9 +93,14 @@ function formatIban(value: string) {
   return cleanIban(value).replace(/(.{4})/g, "$1 ").trim();
 }
 
-function buildBban(spec: CountrySpec, bankCode = "", account = "") {
+function buildBban(
+  spec: CountrySpec,
+  bankCode = "",
+  account = "",
+  randomInt: RandomInt,
+) {
   const bban = [...spec.bbanTemplate].map((type) =>
-    randomChar(type as TemplateChar),
+    randomChar(type as TemplateChar, randomInt),
   );
 
   const overlay = (raw: string, start: number, length: number) => {
@@ -115,8 +118,15 @@ function buildBban(spec: CountrySpec, bankCode = "", account = "") {
   return bban.join("");
 }
 
-function generateIban(spec: CountrySpec, bankCode = "", account = "") {
-  const bban = buildBban(spec, bankCode, account);
+function generateIban(
+  spec: CountrySpec,
+  bankCode = "",
+  account = "",
+  seed = "",
+  index = 0,
+) {
+  const randomInt = createRandomInt(seed ? `${seed}:iban:${index}` : undefined);
+  const bban = buildBban(spec, bankCode, account, randomInt);
   return `${spec.code}${calculateCheckDigits(spec.code, bban)}${bban}`;
 }
 
@@ -175,12 +185,22 @@ export default function Home() {
   const [tab, setTab] = useState<"generate" | "validate">("generate");
   const [generateMode, setGenerateMode] = useState<"single" | "batch">("single");
   const [countryCode, setCountryCode] = useState("DE");
+  const [regionChoice, setRegionChoice] = useState("random");
   const [cityChoice, setCityChoice] = useState("random");
   const [genderChoice, setGenderChoice] = useState<ProfileGender | "random">("random");
-  const [ageChoice, setAgeChoice] = useState<number | "random">("random");
+  const [ageMode, setAgeMode] = useState<"random" | "exact" | "range">("random");
+  const [exactAge, setExactAge] = useState(32);
+  const [minimumAge, setMinimumAge] = useState(25);
+  const [maximumAge, setMaximumAge] = useState(45);
+  const [firstNameOverride, setFirstNameOverride] = useState("");
+  const [lastNameOverride, setLastNameOverride] = useState("");
+  const [streetOverride, setStreetOverride] = useState("");
+  const [postalCodeOverride, setPostalCodeOverride] = useState("");
+  const [seed, setSeed] = useState("");
   const [formatted, setFormatted] = useState(true);
   const [bankCode, setBankCode] = useState("");
   const [account, setAccount] = useState("");
+  const [identityAdvancedOpen, setIdentityAdvancedOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [batchCount, setBatchCount] = useState(10);
   const [profiles, setProfiles] = useState<SyntheticIdentity[]>([
@@ -191,6 +211,23 @@ export default function Home() {
 
   const country = COUNTRY_MAP.get(countryCode) ?? COUNTRIES[0];
   const identityCountry = getIdentityCountry(countryCode);
+  const regionOptions = useMemo(
+    () => [...new Set(identityCountry.cities.map((city) => city.region))],
+    [identityCountry],
+  );
+  const availableCities = useMemo(
+    () =>
+      regionChoice === "random"
+        ? identityCountry.cities
+        : identityCountry.cities.filter((city) => city.region === regionChoice),
+    [identityCountry, regionChoice],
+  );
+  const resolvedAgeChoice: AgeChoice =
+    ageMode === "random"
+      ? "random"
+      : ageMode === "exact"
+        ? exactAge
+        : { min: minimumAge, max: maximumAge };
   const activeProfile = profiles[0] ?? DEFAULT_SYNTHETIC_IDENTITY;
   const validation = useMemo(() => validateIban(validatorInput), [validatorInput]);
   const showToast = (message: string) => {
@@ -207,49 +244,63 @@ export default function Home() {
     }
   };
 
+  const createProfile = (index = 0) => {
+    const iban = generateIban(country, bankCode, account, seed, index);
+    const cityName =
+      cityChoice !== "random" || regionChoice === "random"
+        ? cityChoice
+        : availableCities[
+            createRandomInt(seed ? `${seed}:city:${index}` : undefined)(
+              availableCities.length,
+            )
+          ]?.name ?? "random";
+    return generateSyntheticIdentity({
+      countryCode,
+      iban,
+      cityName,
+      genderChoice,
+      ageChoice: resolvedAgeChoice,
+      firstNameOverride,
+      lastNameOverride,
+      streetOverride,
+      postalCodeOverride,
+      seed,
+      index,
+    });
+  };
+
   const regenerate = () => {
-    const next = generateIban(country, bankCode, account);
-    setProfiles([
-      generateSyntheticIdentity({
-        countryCode,
-        iban: next,
-        cityName: cityChoice,
-        genderChoice,
-        ageChoice,
-      }),
-    ]);
+    setProfiles([createProfile()]);
     showToast("完整测试身份已生成");
   };
 
   const changeCountry = (code: string) => {
     const nextCountry = COUNTRY_MAP.get(code) ?? COUNTRIES[0];
-    const nextIban = generateIban(nextCountry);
+    const nextIban = generateIban(nextCountry, "", "", seed);
     setCountryCode(code);
+    setRegionChoice("random");
     setCityChoice("random");
     setBankCode("");
     setAccount("");
+    setStreetOverride("");
+    setPostalCodeOverride("");
     setProfiles([
       generateSyntheticIdentity({
         countryCode: code,
         iban: nextIban,
         genderChoice,
-        ageChoice,
+        ageChoice: resolvedAgeChoice,
+        firstNameOverride,
+        lastNameOverride,
+        seed,
       }),
     ]);
   };
 
   const generateBatch = () => {
-    const nextProfiles = Array.from({ length: batchCount }, (_, index) => {
-      const nextIban = generateIban(country, bankCode, account);
-      return generateSyntheticIdentity({
-        countryCode,
-        iban: nextIban,
-        cityName: cityChoice,
-        genderChoice,
-        ageChoice,
-        index,
-      });
-    });
+    const nextProfiles = Array.from({ length: batchCount }, (_, index) =>
+      createProfile(index),
+    );
     setProfiles(nextProfiles);
     showToast(`已生成 ${batchCount} 条完整测试身份`);
   };
@@ -258,13 +309,7 @@ export default function Home() {
     setGenerateMode(mode);
     if (mode === "single" && profiles.length > 1) {
       setProfiles([
-        generateSyntheticIdentity({
-          countryCode,
-          iban: generateIban(country, bankCode, account),
-          cityName: cityChoice,
-          genderChoice,
-          ageChoice,
-        }),
+        createProfile(),
       ]);
     }
   };
@@ -343,7 +388,7 @@ export default function Home() {
     const accountValue = bban.slice(spec.accountStart, spec.accountStart + spec.accountLen);
     const after = bban.slice(spec.accountStart + spec.accountLen);
     return (
-      <div className="segment-value" aria-label="IBAN 结构拆解">
+      <div className="segment-value" role="group" aria-label="IBAN 结构拆解">
         <span className="segment-country">{compact.slice(0, 2)}</span>
         <span className="segment-check">{compact.slice(2, 4)}</span>
         {beforeBank && <span className="segment-extra">{beforeBank}</span>}
@@ -375,14 +420,14 @@ export default function Home() {
           <p className="eyebrow">COMPLETE SYNTHETIC IDENTITY · IBAN</p>
           <h1>一个身份，<em>所有测试数据。</em></h1>
           <p className="lede">选择国家、城市、性别与年龄，一次生成本地化姓名、地址、联系方式、税务与保险字段、银行账户、IBAN 和沙盒银行卡。</p>
-          <div className="platform-row" aria-label="支持的部署平台">
+          <div className="platform-row" role="group" aria-label="支持的部署平台">
             <span className="platform-label">DEPLOY ANYWHERE</span>
             <span className="platform-chip vercel-chip"><b>▲</b> Vercel</span>
             <span className="platform-chip cloudflare-chip"><b>☁</b> Cloudflare</span>
             <span className="platform-chip"><b>◇</b> Open Source</span>
           </div>
         </div>
-        <div className="intro-stat" aria-label="性能指标">
+        <div className="intro-stat" role="group" aria-label="性能指标">
           <span>COUNTRIES</span>
           <strong>15</strong>
           <small>one complete profile</small>
@@ -403,53 +448,92 @@ export default function Home() {
           <aside className="config-panel">
             <div className="panel-heading">
               <div>
-                <span className="step">CONFIG</span>
-                <h2>生成配置</h2>
+                <span className="step">PARAMETER STUDIO</span>
+                <h2>精确生成配置</h2>
               </div>
-              <span className="config-status">Ready</span>
+              <span className="config-status">6 GROUPS</span>
             </div>
 
-            <div className="field">
-              <label htmlFor="country">国家 / 地区</label>
-              <div className="select-wrap">
-                <select id="country" value={countryCode} onChange={(event) => changeCountry(event.target.value)}>
-                  {COUNTRIES.map((item) => (
-                    <option key={item.code} value={item.code}>
-                      {item.flag} {item.name} — {item.code}
-                    </option>
-                  ))}
-                </select>
-                <span>⌄</span>
-              </div>
-              <small>{country.length} 位 IBAN · 同步本地化身份字段</small>
+            <div className="config-summary">
+              <span>{country.flag} {country.code}</span>
+              <span>{regionChoice === "random" ? "全地区" : regionChoice}</span>
+              <span>{genderChoice === "random" ? "随机性别" : genderChoice === "female" ? "女性" : "男性"}</span>
+              <span>{generateMode === "single" ? "1 条" : `${batchCount} 条`}</span>
             </div>
 
-            <div className="field">
-              <label htmlFor="identity-city">地区 / 城市</label>
-              <div className="select-wrap">
-                <select
-                  id="identity-city"
-                  value={cityChoice}
-                  onChange={(event) => setCityChoice(event.target.value)}
-                >
-                  <option value="random">🎲 随机城市</option>
-                  {identityCountry.cities.map((city) => (
-                    <option key={city.name} value={city.name}>
-                      {city.name} — {city.region}
-                    </option>
-                  ))}
-                </select>
-                <span>⌄</span>
+            <section className="config-group">
+              <div className="config-group-title">
+                <span>01</span>
+                <div><strong>地域参数</strong><small>决定身份、地址与 IBAN 规范</small></div>
               </div>
-            </div>
 
-            <div className="identity-filter-row">
+              <div className="field">
+                <label htmlFor="country">国家 / 地区</label>
+                <div className="select-wrap">
+                  <select id="country" value={countryCode} onChange={(event) => changeCountry(event.target.value)}>
+                    {COUNTRIES.map((item) => (
+                      <option key={item.code} value={item.code}>
+                        {item.flag} {item.name} — {item.code}
+                      </option>
+                    ))}
+                  </select>
+                  <span>⌄</span>
+                </div>
+                <small>{country.length} 位 IBAN · 本地化身份数据集</small>
+              </div>
+
+              <div className="two-column-fields">
+                <div className="field">
+                  <label htmlFor="identity-region">州 / 地区</label>
+                  <div className="select-wrap">
+                    <select
+                      id="identity-region"
+                      value={regionChoice}
+                      onChange={(event) => {
+                        setRegionChoice(event.target.value);
+                        setCityChoice("random");
+                      }}
+                    >
+                      <option value="random">全部地区</option>
+                      {regionOptions.map((region) => (
+                        <option key={region} value={region}>{region}</option>
+                      ))}
+                    </select>
+                    <span>⌄</span>
+                  </div>
+                </div>
+                <div className="field">
+                  <label htmlFor="identity-city">城市</label>
+                  <div className="select-wrap">
+                    <select
+                      id="identity-city"
+                      value={cityChoice}
+                      onChange={(event) => setCityChoice(event.target.value)}
+                    >
+                      <option value="random">随机城市</option>
+                      {availableCities.map((city) => (
+                        <option key={city.name} value={city.name}>{city.name}</option>
+                      ))}
+                    </select>
+                    <span>⌄</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="config-group">
+              <div className="config-group-title">
+                <span>02</span>
+                <div><strong>人口属性</strong><small>精确控制性别与年龄分布</small></div>
+              </div>
+
               <div className="field">
                 <label>性别</label>
                 <div className="segmented segmented-three">
                   {GENDER_OPTIONS.map(([value, label]) => (
                     <button
                       key={value}
+                      type="button"
                       className={genderChoice === value ? "active" : ""}
                       onClick={() => setGenderChoice(value as ProfileGender | "random")}
                     >
@@ -458,70 +542,156 @@ export default function Home() {
                   ))}
                 </div>
               </div>
+
               <div className="field">
-                <label htmlFor="identity-age">年龄</label>
-                <div className="select-wrap">
-                  <select
-                    id="identity-age"
-                    value={ageChoice}
-                    onChange={(event) =>
-                      setAgeChoice(event.target.value === "random" ? "random" : Number(event.target.value))
-                    }
-                  >
-                    <option value="random">随机 18–80</option>
-                    {AGE_OPTIONS.map((age) => (
-                      <option key={age} value={age}>{age} 岁</option>
-                    ))}
-                  </select>
-                  <span>⌄</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="field">
-              <label>生成模式</label>
-              <div className="segmented">
-                <button className={generateMode === "single" ? "active" : ""} onClick={() => changeGenerateMode("single")}>
-                  单条
-                </button>
-                <button className={generateMode === "batch" ? "active" : ""} onClick={() => changeGenerateMode("batch")}>
-                  批量
-                </button>
-              </div>
-            </div>
-
-            <div className="field format-field">
-              <div>
-                <label htmlFor="format-toggle">显示空格</label>
-                <small>{formatted ? "DE89 3704 …" : "DE893704…"}</small>
-              </div>
-              <button
-                id="format-toggle"
-                className={`toggle ${formatted ? "on" : ""}`}
-                onClick={() => setFormatted(!formatted)}
-                role="switch"
-                aria-checked={formatted}
-              >
-                <span />
-              </button>
-            </div>
-
-            {generateMode === "batch" && (
-              <div className="field">
-                <label>生成数量</label>
-                <div className="count-options">
-                  {[5, 10, 20, 25, 50].map((count) => (
-                    <button key={count} className={batchCount === count ? "active" : ""} onClick={() => setBatchCount(count)}>
-                      {count}
+                <label>年龄策略</label>
+                <div className="segmented segmented-three">
+                  {AGE_MODES.map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={ageMode === value ? "active" : ""}
+                      onClick={() => setAgeMode(value)}
+                    >
+                      {label}
                     </button>
                   ))}
                 </div>
               </div>
-            )}
 
-            <div className="advanced">
+              {ageMode === "exact" && (
+                <div className="field range-field">
+                  <div className="range-label">
+                    <label htmlFor="exact-age">指定年龄</label>
+                    <output htmlFor="exact-age">{exactAge} 岁</output>
+                  </div>
+                  <input
+                    id="exact-age"
+                    type="range"
+                    min="18"
+                    max="80"
+                    value={exactAge}
+                    onChange={(event) => setExactAge(Number(event.target.value))}
+                  />
+                </div>
+              )}
+
+              {ageMode === "range" && (
+                <div className="two-column-fields age-range-fields">
+                  <div className="field">
+                    <label htmlFor="minimum-age">最小年龄</label>
+                    <input
+                      id="minimum-age"
+                      type="number"
+                      min="18"
+                      max="80"
+                      value={minimumAge}
+                      onChange={(event) => setMinimumAge(Math.min(80, Math.max(18, Number(event.target.value))))}
+                    />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="maximum-age">最大年龄</label>
+                    <input
+                      id="maximum-age"
+                      type="number"
+                      min="18"
+                      max="80"
+                      value={maximumAge}
+                      onChange={(event) => setMaximumAge(Math.min(80, Math.max(18, Number(event.target.value))))}
+                    />
+                  </div>
+                </div>
+              )}
+            </section>
+
+            <section className="config-group">
+              <button
+                className="config-group-toggle"
+                type="button"
+                onClick={() => setIdentityAdvancedOpen(!identityAdvancedOpen)}
+                aria-expanded={identityAdvancedOpen}
+              >
+                <span>03</span>
+                <div><strong>身份与地址覆盖</strong><small>可选；留空使用本地化随机值</small></div>
+                <b>{identityAdvancedOpen ? "−" : "+"}</b>
+              </button>
+              {identityAdvancedOpen && (
+                <div className="optional-fields">
+                  <div className="two-column-fields">
+                    <div className="field">
+                      <label htmlFor="first-name">名字</label>
+                      <input id="first-name" value={firstNameOverride} placeholder="Localized" onChange={(event) => setFirstNameOverride(event.target.value)} />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="last-name">姓氏</label>
+                      <input id="last-name" value={lastNameOverride} placeholder="Localized" onChange={(event) => setLastNameOverride(event.target.value)} />
+                    </div>
+                  </div>
+                  <div className="two-column-fields">
+                    <div className="field">
+                      <label htmlFor="street-name">街道</label>
+                      <input id="street-name" value={streetOverride} placeholder="自动选择" onChange={(event) => setStreetOverride(event.target.value)} />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="postal-code">邮编</label>
+                      <input id="postal-code" value={postalCodeOverride} placeholder="自动匹配" onChange={(event) => setPostalCodeOverride(event.target.value)} />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </section>
+
+            <section className="config-group">
+              <div className="config-group-title">
+                <span>04</span>
+                <div><strong>生成规模</strong><small>单条预览或批量导出</small></div>
+              </div>
+              <div className="field">
+                <div className="segmented">
+                  <button type="button" className={generateMode === "single" ? "active" : ""} onClick={() => changeGenerateMode("single")}>单条身份</button>
+                  <button type="button" className={generateMode === "batch" ? "active" : ""} onClick={() => changeGenerateMode("batch")}>批量数据</button>
+                </div>
+              </div>
+              {generateMode === "batch" && (
+                <div className="field batch-count-field">
+                  <div className="range-label">
+                    <label htmlFor="batch-count">生成数量</label>
+                    <output htmlFor="batch-count">{batchCount} 条</output>
+                  </div>
+                  <input id="batch-count" type="range" min="1" max="50" value={batchCount} onChange={(event) => setBatchCount(Number(event.target.value))} />
+                  <div className="count-shortcuts">
+                    {[5, 10, 25, 50].map((count) => (
+                      <button type="button" key={count} className={batchCount === count ? "active" : ""} onClick={() => setBatchCount(count)}>{count}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </section>
+
+            <section className="config-group">
+              <div className="config-group-title">
+                <span>05</span>
+                <div><strong>可复现性与格式</strong><small>固定种子可重复生成同一数据</small></div>
+              </div>
+              <div className="field seed-field">
+                <label htmlFor="seed">随机种子（可选）</label>
+                <div>
+                  <input id="seed" value={seed} placeholder="例如 qa-regression-01" onChange={(event) => setSeed(event.target.value)} />
+                  <button type="button" onClick={() => setSeed(`test-${Date.now().toString(36)}`)}>生成</button>
+                </div>
+              </div>
+              <div className="field format-field">
+                <div>
+                  <label htmlFor="format-toggle">IBAN 显示空格</label>
+                  <small>{formatted ? "DE89 3704 …" : "DE893704…"}</small>
+                </div>
+                <button id="format-toggle" type="button" className={`toggle ${formatted ? "on" : ""}`} onClick={() => setFormatted(!formatted)} role="switch" aria-checked={formatted}><span /></button>
+              </div>
+            </section>
+
+            <section className="config-group config-group-last">
               <button className="advanced-trigger" onClick={() => setAdvancedOpen(!advancedOpen)} aria-expanded={advancedOpen}>
-                <span>高级：自定义 BBAN</span>
+                <span><b>06</b> 银行字段 / 自定义 BBAN</span>
                 <b>{advancedOpen ? "−" : "+"}</b>
               </button>
               {advancedOpen && (
@@ -549,7 +719,7 @@ export default function Home() {
                   <p>留空部分将随机补齐，校验码会自动重新计算。</p>
                 </div>
               )}
-            </div>
+            </section>
 
             <button className="primary-action" onClick={generateMode === "single" ? regenerate : generateBatch}>
               <span>{generateMode === "single" ? "生成完整测试身份" : `生成 ${batchCount} 条完整身份`}</span>
@@ -563,6 +733,15 @@ export default function Home() {
                 <div className="result-topline">
                   <span className="step">OUTPUT / COMPLETE IDENTITY</span>
                   <span className="valid-chip"><i /> SYNTHETIC · LOCAL</span>
+                </div>
+
+                <div className="active-parameters" role="group" aria-label="本次生成参数">
+                  <span>{country.flag} {activeProfile.country.name}</span>
+                  <span>{activeProfile.address.region}</span>
+                  <span>{activeProfile.address.city}</span>
+                  <span>{activeProfile.personal.gender === "female" ? "女性" : "男性"}</span>
+                  <span>{activeProfile.personal.age} 岁</span>
+                  {seed && <span className="seed-chip"># {seed}</span>}
                 </div>
 
                 <div className="profile-heading identity-profile-heading">
@@ -579,6 +758,13 @@ export default function Home() {
                   >
                     复制完整 JSON
                   </button>
+                </div>
+
+                <div className="quality-grid" role="group" aria-label="数据质量摘要">
+                  <div><span>PROFILE ID</span><strong>{activeProfile.id}</strong></div>
+                  <div><span>LOCALIZATION</span><strong>{activeProfile.country.code} / {activeProfile.address.city}</strong></div>
+                  <div><span>DATA GROUPS</span><strong>05 / COMPLETE</strong></div>
+                  <div><span>IBAN CHECK</span><strong className="quality-positive">MOD-97 PASS</strong></div>
                 </div>
 
                 <div className="iban-display identity-iban-display">
