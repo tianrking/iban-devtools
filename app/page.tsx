@@ -262,10 +262,8 @@ export default function Home() {
         </a>
         <div className="header-meta">
           <span className="local-badge"><i /> 100% 本地运行</span>
-          <a className="header-link" href="#tool">开始使用</a>
-          <a className="github-link" href="https://github.com/tianrking/iban-devtools" target="_blank" rel="noreferrer">
-            <span className="github-dot">●</span> GitHub <span>↗</span>
-          </a>
+          <span className="standard-mark"><b>ISO</b> 13616</span>
+          <a className="header-link" href="#tool">开始使用 <span>↓</span></a>
         </div>
       </header>
 
