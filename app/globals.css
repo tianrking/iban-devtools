@@ -1875,3 +1875,335 @@ footer > a:hover {
     transition: none !important;
   }
 }
+
+/* Product v2 — discovery, scenario presets, exports and command surface */
+.header-command {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 7px 9px;
+  background: transparent;
+  color: #68716e;
+  font: 650 9px/1 var(--font-geist-mono), monospace;
+  cursor: pointer;
+}
+
+.header-command:hover {
+  border-color: #98a19d;
+  color: var(--ink);
+}
+
+.header-command kbd {
+  margin-left: 5px;
+  color: #9aa19e;
+}
+
+.preset-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin: 14px 0;
+}
+
+.preset-strip button,
+.share-row button {
+  min-height: 36px;
+  border: 1px solid #333a38;
+  border-radius: 7px;
+  background: #161a19;
+  color: #bac1be;
+  font: 650 9px/1 var(--font-geist-mono), monospace;
+  cursor: pointer;
+}
+
+.preset-strip button:hover,
+.share-row button:hover {
+  border-color: var(--lime);
+  color: var(--lime);
+}
+
+.country-discovery {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 7px;
+  margin-bottom: 8px;
+}
+
+.country-discovery > input {
+  min-width: 0;
+}
+
+.mini-segmented {
+  display: flex;
+  padding: 3px;
+  border: 1px solid #343a38;
+  border-radius: 7px;
+  background: #151817;
+}
+
+.mini-segmented button {
+  border: 0;
+  border-radius: 4px;
+  padding: 0 7px;
+  background: transparent;
+  color: #7e8783;
+  font: 650 8px/1 var(--font-geist-mono), monospace;
+  cursor: pointer;
+}
+
+.mini-segmented button.active {
+  background: #303632;
+  color: white;
+}
+
+.scenario-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.scenario-grid button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 40px;
+  border: 1px solid #343a38;
+  border-radius: 7px;
+  padding: 0 10px;
+  background: #171a19;
+  color: #bdc4c1;
+  cursor: pointer;
+}
+
+.scenario-grid button strong {
+  font-size: 10px;
+}
+
+.scenario-grid button small {
+  color: #727b77;
+  font: 600 8px/1 var(--font-geist-mono), monospace;
+}
+
+.scenario-grid button.active {
+  border-color: var(--lime);
+  background: rgba(217, 255, 100, 0.08);
+  color: var(--lime);
+}
+
+.share-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 9px;
+}
+
+.share-row button {
+  padding: 0 11px;
+}
+
+.share-row span {
+  color: #606865;
+  font: 600 8px/1.4 var(--font-geist-mono), monospace;
+  text-align: right;
+}
+
+.invalid-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #d6635b;
+  font: 700 8px/1 var(--font-geist-mono), monospace;
+  letter-spacing: 0.08em;
+}
+
+.invalid-chip i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #d6635b;
+}
+
+.negative-value {
+  color: #c54c43 !important;
+}
+
+.identity-export-bar select,
+.identity-batch-toolbar select {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 28px 0 9px;
+  background: white;
+  color: var(--ink);
+  font: 650 9px/1 var(--font-geist-mono), monospace;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.pagination button {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 12px;
+  background: white;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.pagination span {
+  color: #727a77;
+  font: 650 9px/1 var(--font-geist-mono), monospace;
+}
+
+.validation-checks {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 7px;
+  margin: 18px 0;
+}
+
+.validation-checks div {
+  display: grid;
+  gap: 5px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 11px 8px;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.validation-checks span {
+  font: 750 14px/1 var(--font-geist-mono), monospace;
+}
+
+.validation-checks strong {
+  color: #707875;
+  font-size: 8px;
+}
+
+.validation-checks .passed span {
+  color: #4f8068;
+}
+
+.validation-checks .failed span {
+  color: #c94f47;
+}
+
+.command-backdrop {
+  position: fixed;
+  z-index: 40;
+  inset: 0;
+  display: grid;
+  place-items: start center;
+  padding-top: 14vh;
+  background: rgba(8, 11, 10, 0.62);
+  backdrop-filter: blur(12px);
+}
+
+.command-palette {
+  width: min(540px, calc(100% - 28px));
+  overflow: hidden;
+  border: 1px solid #424a47;
+  border-radius: 13px;
+  background: #111514;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.4);
+}
+
+.command-palette > div,
+.command-palette > button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid #272d2b;
+  padding: 14px 17px;
+  background: transparent;
+  color: #d8deda;
+  text-align: left;
+}
+
+.command-palette > div {
+  color: #77807c;
+  font: 700 8px/1 var(--font-geist-mono), monospace;
+  letter-spacing: 0.12em;
+}
+
+.command-palette > div button {
+  border: 1px solid #343a38;
+  border-radius: 5px;
+  background: transparent;
+  color: #777f7c;
+}
+
+.command-palette > button {
+  cursor: pointer;
+}
+
+.command-palette > button:hover {
+  background: rgba(217, 255, 100, 0.08);
+}
+
+.command-palette > button strong {
+  font-size: 12px;
+}
+
+.command-palette > button span,
+.command-palette > button kbd {
+  color: #727b77;
+  font: 650 9px/1 var(--font-geist-mono), monospace;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #101312;
+  --ink: #e6ebe8;
+  --line: #313735;
+  --soft: #181c1a;
+}
+
+html[data-theme="dark"] body {
+  background: #0d100f;
+}
+
+html[data-theme="dark"] .site-header,
+html[data-theme="dark"] .result-panel,
+html[data-theme="dark"] .validator-input-card,
+html[data-theme="dark"] .validation-result,
+html[data-theme="dark"] .profile-card,
+html[data-theme="dark"] .quality-grid > div,
+html[data-theme="dark"] .validation-checks div,
+html[data-theme="dark"] .pagination button,
+html[data-theme="dark"] .identity-export-bar select,
+html[data-theme="dark"] .identity-batch-toolbar select {
+  background: #151918;
+  color: #e1e6e3;
+}
+
+html[data-theme="dark"] .intro,
+html[data-theme="dark"] footer {
+  color: #c5ccc8;
+}
+
+@media (max-width: 580px) {
+  .header-command {
+    display: none;
+  }
+
+  .country-discovery {
+    grid-template-columns: 1fr;
+  }
+
+  .validation-checks {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

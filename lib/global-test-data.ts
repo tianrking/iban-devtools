@@ -2,10 +2,25 @@ import {
   calculateGermanTaxIdCheckDigit,
   validateGermanTaxId,
 } from "./german-test-data.ts";
+import {
+  cleanIban,
+  IBAN_COUNTRY_MAP,
+  mod97,
+  type IbanCountrySpec,
+} from "./iban-core.ts";
 
 export type ProfileGender = "male" | "female";
 export type AgeChoice = number | "random" | { min: number; max: number };
 export type RandomInt = (max: number) => number;
+export type IdentityScenario =
+  | "complete"
+  | "kyc"
+  | "payments"
+  | "payroll"
+  | "ecommerce"
+  | "sepa"
+  | "api-boundary"
+  | "database";
 
 export type IdentityCity = {
   name: string;
@@ -30,6 +45,12 @@ export type IdentityCountrySpec = {
 
 export type SyntheticIdentity = {
   id: string;
+  meta: {
+    schemaVersion: "2.0";
+    scenario: IdentityScenario;
+    seed: string | null;
+    quality: "synthetic-test-data";
+  };
   country: {
     code: string;
     name: string;
@@ -44,6 +65,13 @@ export type SyntheticIdentity = {
     birthDate: string;
     birthPlace: string;
     documentNumber: string;
+    passportNumber: string;
+    username: string;
+    testPassword: string;
+    locale: string;
+    language: string;
+    timezone: string;
+    kycRiskLevel: "low" | "medium" | "high";
   };
   contact: {
     email: string;
@@ -70,6 +98,8 @@ export type SyntheticIdentity = {
     iban: string;
     accountNumber: string;
     bic: string;
+    currency: string;
+    accountType: "checking" | "savings";
     card: {
       label: string;
       number: string;
@@ -81,6 +111,31 @@ export type SyntheticIdentity = {
     employer: string;
     jobTitle: string;
     employeeId: string;
+    annualSalary: number;
+    contractStartDate: string;
+  };
+  business: {
+    companyName: string;
+    vatId: string;
+    registrationNumber: string;
+  };
+  payment: {
+    scheme: "SCT" | "LOCAL";
+    amount: number;
+    currency: string;
+    endToEndId: string;
+    creditorReference: string;
+    purposeCode: string;
+    remittanceInformation: string;
+    verificationOfPayee: "match" | "close-match" | "no-match" | "unavailable";
+    structuredAddress: {
+      streetName: string;
+      buildingNumber: string;
+      postCode: string;
+      townName: string;
+      countrySubdivision: string;
+      country: string;
+    };
   };
 };
 
@@ -255,6 +310,12 @@ export const IDENTITY_COUNTRIES: IdentityCountrySpec[] = [
 
 export const DEFAULT_SYNTHETIC_IDENTITY: SyntheticIdentity = {
   id: "DE-TEST-00000001",
+  meta: {
+    schemaVersion: "2.0",
+    scenario: "complete",
+    seed: "default",
+    quality: "synthetic-test-data",
+  },
   country: { code: "DE", name: "德国", flag: "🇩🇪" },
   personal: {
     firstName: "Klara",
@@ -265,6 +326,13 @@ export const DEFAULT_SYNTHETIC_IDENTITY: SyntheticIdentity = {
     birthDate: "1988-04-17",
     birthPlace: "Berlin",
     documentNumber: "TSTDE0000001",
+    passportNumber: "DE-TST-000001",
+    username: "klara.neumann",
+    testPassword: "TestOnly!2026",
+    locale: "de-DE",
+    language: "de",
+    timezone: "Europe/Berlin",
+    kycRiskLevel: "low",
   },
   contact: {
     email: "klara.neumann@example.de",
@@ -291,6 +359,8 @@ export const DEFAULT_SYNTHETIC_IDENTITY: SyntheticIdentity = {
     iban: "DE89370400440532013000",
     accountNumber: "370400440532013000",
     bic: "TSTBDEXXXXX",
+    currency: "EUR",
+    accountType: "checking",
     card: {
       label: "Sandbox card",
       number: "4242 4242 4242 4242",
@@ -302,6 +372,31 @@ export const DEFAULT_SYNTHETIC_IDENTITY: SyntheticIdentity = {
     employer: "Berlin Demo Labs",
     jobTitle: "QA Engineer",
     employeeId: "EMP-DE-000001",
+    annualSalary: 68000,
+    contractStartDate: "2023-04-01",
+  },
+  business: {
+    companyName: "Berlin Demo Labs GmbH",
+    vatId: "DETEST000001",
+    registrationNumber: "HRB-TEST-000001",
+  },
+  payment: {
+    scheme: "SCT",
+    amount: 128.4,
+    currency: "EUR",
+    endToEndId: "E2E-DE-000001",
+    creditorReference: "RF18539007547034",
+    purposeCode: "GDDS",
+    remittanceInformation: "Synthetic test payment",
+    verificationOfPayee: "match",
+    structuredAddress: {
+      streetName: "Friedrichstraße",
+      buildingNumber: "24",
+      postCode: "10115",
+      townName: "Berlin",
+      countrySubdivision: "Berlin",
+      country: "DE",
+    },
   },
 };
 
@@ -312,6 +407,61 @@ const TEST_CARD_NUMBERS = [
   "5555 5555 5555 4444",
 ];
 const JOB_TITLES = ["QA Engineer", "Frontend Developer", "Data Analyst", "Product Designer", "Test Automation Engineer"];
+const KYC_RISK_LEVELS = ["low", "medium", "high"] as const;
+const PURPOSE_CODES = ["GDDS", "SALA", "SUPP", "OTHR"];
+const VOP_OUTCOMES = ["match", "close-match", "no-match", "unavailable"] as const;
+const LOCALE_OVERRIDES: Record<string, [string, string, string]> = {
+  DE: ["de-DE", "de", "Europe/Berlin"],
+  FR: ["fr-FR", "fr", "Europe/Paris"],
+  GB: ["en-GB", "en", "Europe/London"],
+  NL: ["nl-NL", "nl", "Europe/Amsterdam"],
+  ES: ["es-ES", "es", "Europe/Madrid"],
+  IT: ["it-IT", "it", "Europe/Rome"],
+  CH: ["de-CH", "de", "Europe/Zurich"],
+  BE: ["nl-BE", "nl", "Europe/Brussels"],
+  AT: ["de-AT", "de", "Europe/Vienna"],
+  IE: ["en-IE", "en", "Europe/Dublin"],
+  PL: ["pl-PL", "pl", "Europe/Warsaw"],
+  PT: ["pt-PT", "pt", "Europe/Lisbon"],
+  NO: ["nb-NO", "nb", "Europe/Oslo"],
+  FI: ["fi-FI", "fi", "Europe/Helsinki"],
+  LU: ["fr-LU", "fr", "Europe/Luxembourg"],
+};
+
+function genericIdentityCountry(spec: IbanCountrySpec): IdentityCountrySpec {
+  return {
+    code: spec.code,
+    name: spec.name,
+    flag: spec.flag,
+    maleNames: ["Alex", "Daniel", "Martin", "Noah"],
+    femaleNames: ["Anna", "Emma", "Mia", "Sofia"],
+    lastNames: ["Anders", "Martin", "Novak", "Silva", "Taylor"],
+    cities: [
+      {
+        name: `${spec.code} Sandbox City`,
+        region: `${spec.code} North Test Region`,
+        postalCode: "00001",
+        streets: ["Example Street", "Integration Avenue"],
+      },
+      {
+        name: `${spec.code} Fixture City`,
+        region: `${spec.code} Central Test Region`,
+        postalCode: "00002",
+        streets: ["Fixture Lane", "Automation Road"],
+      },
+      {
+        name: `${spec.code} Boundary City`,
+        region: `${spec.code} South Test Region`,
+        postalCode: "99999",
+        streets: ["Boundary Boulevard", "Mock Data Street"],
+      },
+    ],
+    phonePrefix: "+999",
+    emailDomain: `example.${spec.code.toLowerCase()}`,
+    taxLabel: `${spec.code} tax identifier (format-only)`,
+    insuranceLabel: `${spec.code} insurance reference (format-only)`,
+  };
+}
 
 function secureRandomInt(max: number) {
   if (typeof crypto !== "undefined" && crypto.getRandomValues) {
@@ -442,8 +592,24 @@ function generateTaxId(
   }
 }
 
+function generateCreditorReference(randomInt: RandomInt) {
+  const payload = randomDigits(12, randomInt);
+  const checkDigits = String(98 - mod97(`${payload}271500`)).padStart(2, "0");
+  return `RF${checkDigits}${payload}`;
+}
+
+function generateContractStartDate(randomInt: RandomInt) {
+  const year = 2020 + randomInt(7);
+  const month = 1 + randomInt(12);
+  const day = 1 + randomInt(28);
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
 export function getIdentityCountry(countryCode: string) {
-  return COUNTRY_MAP.get(countryCode) ?? IDENTITY_COUNTRIES[0];
+  const localized = COUNTRY_MAP.get(countryCode);
+  if (localized) return localized;
+  const registrySpec = IBAN_COUNTRY_MAP.get(countryCode);
+  return registrySpec ? genericIdentityCountry(registrySpec) : IDENTITY_COUNTRIES[0];
 }
 
 export function generateSyntheticIdentity({
@@ -456,6 +622,7 @@ export function generateSyntheticIdentity({
   lastNameOverride = "",
   streetOverride = "",
   postalCodeOverride = "",
+  scenario = "complete",
   seed = "",
   index = 0,
 }: {
@@ -468,6 +635,7 @@ export function generateSyntheticIdentity({
   lastNameOverride?: string;
   streetOverride?: string;
   postalCodeOverride?: string;
+  scenario?: IdentityScenario;
   seed?: string;
   index?: number;
 }): SyntheticIdentity {
@@ -496,12 +664,26 @@ export function generateSyntheticIdentity({
   const houseNumber = String(1 + randomInt(180));
   const postalCode = postalCodeOverride.trim() || city.postalCode;
   const taxId = generateTaxId(spec.code, gender, randomInt);
+  const registrySpec = IBAN_COUNTRY_MAP.get(spec.code);
+  const [locale, language, timezone] =
+    LOCALE_OVERRIDES[spec.code] ?? [`en-${spec.code}`, "en", "UTC"];
+  const username = `${slugifyName(firstName)}.${slugifyName(lastName)}`;
+  const cleanBankIban = cleanIban(iban);
+  const currency = scenario === "sepa" ? "EUR" : registrySpec?.currency ?? "EUR";
+  const salary = 32000 + randomInt(88001);
+  const creditorReference = generateCreditorReference(randomInt);
   const stableId = seed
     ? String(hashSeed(`${seed}:${index}`)).padStart(10, "0").slice(-8)
     : String(Date.now() + index).slice(-8);
 
   return {
     id: `${spec.code}-TEST-${stableId}`,
+    meta: {
+      schemaVersion: "2.0",
+      scenario,
+      seed: seed || null,
+      quality: "synthetic-test-data",
+    },
     country: { code: spec.code, name: spec.name, flag: spec.flag },
     personal: {
       firstName,
@@ -512,9 +694,16 @@ export function generateSyntheticIdentity({
       birthDate,
       birthPlace: city.name,
       documentNumber: `TST${spec.code}${randomDigits(7, randomInt)}`,
+      passportNumber: `${spec.code}-TST-${randomLetters(2, randomInt)}${randomDigits(6, randomInt)}`,
+      username,
+      testPassword: `TestOnly!${randomDigits(4, randomInt)}`,
+      locale,
+      language,
+      timezone,
+      kycRiskLevel: pick([...KYC_RISK_LEVELS], randomInt),
     },
     contact: {
-      email: `${slugifyName(firstName)}.${slugifyName(lastName)}@${spec.emailDomain}`,
+      email: `${username}@${spec.emailDomain}`,
       phone: `${spec.phonePrefix} ${randomDigits(3, randomInt)} ${randomDigits(3, randomInt)} ${randomDigits(4, randomInt)}`,
     },
     address: {
@@ -538,8 +727,10 @@ export function generateSyntheticIdentity({
     banking: {
       bankName: `${spec.name} Test Bank`,
       iban,
-      accountNumber: iban.slice(4),
+      accountNumber: cleanBankIban.slice(4),
       bic: `TSTB${spec.code}XXXXX`,
+      currency,
+      accountType: pick(["checking", "savings"], randomInt),
       card: {
         label: "Sandbox card",
         number: pick(TEST_CARD_NUMBERS, randomInt),
@@ -551,6 +742,31 @@ export function generateSyntheticIdentity({
       employer: `${city.name} Demo Labs`,
       jobTitle: pick(JOB_TITLES, randomInt),
       employeeId: `EMP-${spec.code}-${randomDigits(6, randomInt)}`,
+      annualSalary: salary,
+      contractStartDate: generateContractStartDate(randomInt),
+    },
+    business: {
+      companyName: `${city.name} Demo Labs`,
+      vatId: `${spec.code}TEST${randomDigits(8, randomInt)}`,
+      registrationNumber: `REG-${spec.code}-${randomDigits(8, randomInt)}`,
+    },
+    payment: {
+      scheme: registrySpec?.sepa ? "SCT" : "LOCAL",
+      amount: Number((10 + randomInt(499001) / 100).toFixed(2)),
+      currency,
+      endToEndId: `E2E-${spec.code}-${randomDigits(10, randomInt)}`,
+      creditorReference,
+      purposeCode: pick(PURPOSE_CODES, randomInt),
+      remittanceInformation: `Synthetic ${scenario} test payment`,
+      verificationOfPayee: pick([...VOP_OUTCOMES], randomInt),
+      structuredAddress: {
+        streetName: street,
+        buildingNumber: houseNumber,
+        postCode: postalCode,
+        townName: city.name,
+        countrySubdivision: city.region,
+        country: spec.code,
+      },
     },
   };
 }

@@ -1,0 +1,19 @@
+{
+  "name": "IBAN DevTools — Synthetic Identity Studio",
+  "short_name": "IBAN DevTools",
+  "description": "Generate and validate synthetic IBAN, identity, KYC and payment test data locally.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f5f2",
+  "theme_color": "#0b0e0d",
+  "lang": "zh-CN",
+  "categories": ["developer", "utilities", "finance"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

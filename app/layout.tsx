@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { headers } from "next/headers";
+import { PwaRegister } from "./pwa-register";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -22,7 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const host =
     requestHeaders.get("x-forwarded-host") ??
     requestHeaders.get("host") ??
-    "iban-devtools-lab.tian-r-king.chatgpt.site";
+    "localhost:3000";
   const protocol =
     requestHeaders.get("x-forwarded-proto") ??
     (host.startsWith("localhost") ? "http" : "https");
@@ -32,6 +33,17 @@ export async function generateMetadata(): Promise<Metadata> {
     title,
     description,
     applicationName: "IBAN DevTools",
+    manifest: "/manifest.webmanifest",
+    themeColor: "#0b0e0d",
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "black-translucent",
+      title: "IBAN DevTools",
+    },
+    icons: {
+      icon: "/icon.svg",
+      apple: "/icon.svg",
+    },
     keywords: ["IBAN", "synthetic identity", "test data", "MOD-97", "developer tools", "validator"],
     openGraph: {
       title,
@@ -58,6 +70,7 @@ export default function RootLayout({
     <html lang="zh-CN">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         {children}
+        <PwaRegister />
       </body>
     </html>
   );
