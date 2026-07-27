@@ -1172,12 +1172,6 @@ export default function Home() {
           <p className="eyebrow">{t("heroEyebrow")}</p>
           <h1>{t("heroLead")} <em>{t("heroEmphasis")}</em></h1>
           <p className="lede">{t("heroDescription")}</p>
-          <div className="platform-row" role="group" aria-label={t("supportedPlatforms")}>
-            <span className="platform-label">{t("deployAnywhere")}</span>
-            <span className="platform-chip vercel-chip"><b>▲</b> Vercel</span>
-            <span className="platform-chip cloudflare-chip"><b>☁</b> Cloudflare</span>
-            <span className="platform-chip"><b>◇</b> {t("openSource")}</span>
-          </div>
         </div>
         <div className="intro-stat" role="group" aria-label={t("performanceMetrics")}>
           <span>{t("countriesAreas")}</span>
